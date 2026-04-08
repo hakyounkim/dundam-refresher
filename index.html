@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>던담 일괄 갱신기</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans KR',sans-serif;background:#0a0a0a;color:#ddd;min-height:100vh}
+  .container{max-width:640px;margin:0 auto;padding:40px 20px}
+  .header{margin-bottom:32px}
+  h1{font-size:28px;font-weight:900;background:linear-gradient(135deg,#ff6b6b,#ffa36b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+  .sub{color:#555;font-size:13px}
+
+  .search{display:flex;gap:8px;margin-bottom:24px}
+  .search select,.search input,.search button{font-family:inherit;font-size:14px;border:1px solid #222;background:#141414;color:#ddd;border-radius:8px;padding:10px 14px;outline:none;transition:border-color .2s}
+  .search select{width:110px;cursor:pointer}
+  .search input{flex:1;min-width:0}
+  .search input:focus{border-color:#ff6b6b}
+  .search input::placeholder{color:#444}
+  .search button{background:linear-gradient(135deg,#ff6b6b,#ff8e53);color:#fff;border:none;font-weight:700;cursor:pointer;padding:10px 20px;transition:opacity .2s;white-space:nowrap}
+  .search button:hover{opacity:.9}
+  .search button:disabled{opacity:.4;cursor:not-allowed}
+
+  .controls{display:none;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .controls.show{display:flex}
+  .ctrl-left{display:flex;gap:6px;align-items:center}
+  .ctrl-left button{font-family:inherit;font-size:11px;background:#141414;color:#888;border:1px solid #222;border-radius:6px;padding:5px 10px;cursor:pointer;transition:all .2s}
+  .ctrl-left button:hover{border-color:#ff6b6b;color:#ff6b6b}
+  .ctrl-count{font-size:11px;color:#555}
+  .go-btn{font-family:inherit;font-size:13px;font-weight:700;background:linear-gradient(135deg,#ff6b6b,#ff8e53);color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;transition:opacity .2s}
+  .go-btn:hover{opacity:.9}
+  .go-btn:disabled{opacity:.4;cursor:not-allowed}
+
+  .progress{height:3px;background:#1a1a1a;border-radius:2px;margin-bottom:12px;display:none;overflow:hidden}
+  .progress.show{display:block}
+  .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#ff6b6b,#ffa36b);border-radius:2px;transition:width .3s}
+
+  .char-list{display:flex;flex-direction:column;gap:4px}
+  .empty{text-align:center;padding:80px 20px;color:#333;font-size:14px}
+  .empty .emoji{font-size:40px;margin-bottom:12px}
+
+  .char{display:flex;align-items:center;gap:10px;background:#111;border:1px solid #1a1a1a;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;user-select:none}
+  .char:hover{border-color:#282828}
+  .char.on{background:#160f0f;border-color:#ff6b6b22}
+  .char.loading{border-color:#ffa36b55}
+  .char.done{border-color:#4caf5055}
+  .char.error{border-color:#f4433655}
+
+  .chk{width:18px;height:18px;border:2px solid #333;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .15s}
+  .char.on .chk{background:#ff6b6b;border-color:#ff6b6b}
+
+  .avatar{width:36px;height:36px;border-radius:8px;background:#1a1a1a;overflow:hidden;flex-shrink:0}
+  .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+
+  .info{flex:1;min-width:0}
+  .info-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .info-detail{font-size:11px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .rank{font-size:11px;color:#ff6b6b;text-align:right;flex-shrink:0;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank.buff{color:#66bbff}
+
+  .status{font-size:11px;flex-shrink:0;width:20px;text-align:center}
+  .status.s-load{color:#ffa36b}
+  .status.s-done{color:#4caf50}
+  .status.s-err{color:#f44336}
+
+  .log{margin-top:16px;background:#0d0d0d;border-radius:8px;padding:8px 10px;font-size:10px;color:#444;font-family:'Courier New',monospace;max-height:100px;overflow-y:auto;display:none;border:1px solid #1a1a1a}
+  .log.show{display:block}
+  .log div{padding:1px 0}
+  .log .l-ok{color:#4caf50}
+  .log .l-err{color:#f44336}
+  .log .l-info{color:#ffa36b}
+
+  .footer{text-align:center;margin-top:48px;color:#252525;font-size:11px}
+  .footer a{color:#333;text-decoration:none}
+  .footer a:hover{color:#ff6b6b}
+
+  @media(max-width:480px){
+    .container{padding:24px 14px}
+    h1{font-size:22px}
+    .header{margin-bottom:20px}
+
+    .search{flex-wrap:wrap}
+    .search select{width:100%}
+    .search input{flex:1;min-width:0}
+    .search button{flex:none;white-space:nowrap}
+
+    .controls{flex-wrap:wrap;gap:8px}
+    .ctrl-left{flex:1}
+    .go-btn{width:100%;padding:11px 0;font-size:14px}
+
+    .char{padding:10px 10px;gap:8px}
+    .avatar{width:32px;height:32px}
+    .info-name{font-size:12px}
+    .info-detail{font-size:10px}
+    .rank{max-width:90px;font-size:10px}
+    .chk{width:20px;height:20px;flex-shrink:0}
+
+    .log{font-size:10px;max-height:120px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>⚡ 던담 일괄 갱신기</h1>
+    <p class="sub">모험단 검색 → 캐릭 선택 → 한번에 갱신</p>
+  </div>
+
+  <div class="search">
+    <select id="server">
+      <option value="adven">모험단</option>
+      <option value="cain">카인</option>
+      <option value="diregie">디레지에</option>
+      <option value="siroco">시로코</option>
+      <option value="prey">프레이</option>
+      <option value="casillas">카시야스</option>
+      <option value="hilder">힐더</option>
+      <option value="anton">안톤</option>
+      <option value="bakal">바칼</option>
+    </select>
+    <input type="text" id="name" placeholder="모험단명 또는 캐릭터명" maxlength="20">
+    <button id="searchBtn" onclick="doSearch()">검색</button>
+  </div>
+
+  <div class="controls" id="controls">
+    <div class="ctrl-left">
+      <button onclick="selectAll()">전체 선택</button>
+      <button onclick="selectNone()">전체 해제</button>
+      <span class="ctrl-count" id="count"></span>
+    </div>
+    <button class="go-btn" id="goBtn" onclick="doRefresh()">선택 갱신</button>
+  </div>
+
+  <div class="progress" id="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="char-list" id="list">
+    <div class="empty">
+      <div class="emoji">🔍</div>
+      모험단을 검색하면 캐릭터 목록이 표시됩니다
+    </div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <div class="footer">
+    던담 일괄 갱신기 · <a href="https://dundam.xyz" target="_blank">dundam.xyz</a> 비공식 유틸리티
+  </div>
+</div>
+
+<script>
+let chars = [];
+let selected = new Set();
+let busy = false;
+const $ = id => document.getElementById(id);
+
+async function doSearch() {
+  const server = $('server').value;
+  const name = $('name').value.trim();
+  if (!name) return $('name').focus();
+
+  $('searchBtn').disabled = true;
+  $('searchBtn').textContent = '검색 중...';
+  $('controls').classList.remove('show');
+  $('log').classList.remove('show');
+  $('log').innerHTML = '';
+  $('list').innerHTML = '<div class="empty"><div class="emoji">⏳</div>검색 중...</div>';
+
+  try {
+    const res = await fetch(`/api/search?server=${server}&name=${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    chars = (data.characters || []).map(c => ({
+      ...c,
+      avatarUrl: `https://img-api.neople.co.kr/df/servers/${c.server}/characters/${c.key}?zoom=1`,
+      _status: 'idle'
+    }));
+
+    if (!chars.length) {
+      $('list').innerHTML = '<div class="empty"><div class="emoji">😢</div>검색 결과가 없습니다</div>';
+    } else {
+      selected = new Set(chars.map((_, i) => i));
+      render();
+      $('controls').classList.add('show');
+      updateCount();
+    }
+  } catch (e) {
+    $('list').innerHTML = `<div class="empty"><div class="emoji">❌</div>검색 실패: ${e.message}</div>`;
+  }
+
+  $('searchBtn').disabled = false;
+  $('searchBtn').textContent = '검색';
+}
+
+function render() {
+  $('list').innerHTML = chars.map((c, i) => {
+    const on = selected.has(i);
+    const cls = ['char', on?'on':'', c._status==='loading'?'loading':'', c._status==='done'?'done':'', c._status==='error'?'error':''].filter(Boolean).join(' ');
+    const statusHtml = {loading:'<div class="status s-load">···</div>',done:'<div class="status s-done">✓</div>',error:'<div class="status s-err">✗</div>'}[c._status]||'<div class="status"></div>';
+
+    const isBuff = !!c.buffScore;
+    const rankText = isBuff ? `버프 ${c.buffScore}` : (c.ozma || '');
+
+    return `<div class="${cls}" onclick="toggle(${i})">
+      <div class="chk">${on?'✓':''}</div>
+      <div class="avatar"><img src="${c.avatarUrl}" onerror="this.parentElement.style.background='#222'"></div>
+      <div class="info">
+        <div class="info-name">${c.name}</div>
+        <div class="info-detail">${c.job} · 명성 ${c.fame.toLocaleString()}${c.cri?' · 크리 '+c.cri+'%':''}${c._refreshTime!=null?' · '+c._refreshTime+'분 전 갱신':''}</div>
+      </div>
+      <div class="rank${isBuff?' buff':''}">${rankText}</div>
+      ${statusHtml}
+    </div>`;
+  }).join('');
+}
+
+function toggle(i) { if(busy)return; selected.has(i)?selected.delete(i):selected.add(i); render(); updateCount(); }
+function selectAll() { if(busy)return; chars.forEach((_,i)=>selected.add(i)); render(); updateCount(); }
+function selectNone() { if(busy)return; selected.clear(); render(); updateCount(); }
+function updateCount() { $('count').textContent=`${selected.size} / ${chars.length}`; $('goBtn').disabled=selected.size===0; }
+
+function log(msg, type='') {
+  const el=$('log'); el.classList.add('show');
+  el.innerHTML+=`<div class="l-${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+
+async function doRefresh() {
+  if(busy||!selected.size)return;
+  busy=true;
+  $('goBtn').disabled=true; $('goBtn').textContent='갱신 중...';
+  $('progress').classList.add('show'); $('progressFill').style.width='0%';
+
+  const indices=[...selected].sort((a,b)=>a-b);
+  let done=0,ok=0,fail=0;
+  const BATCH=5;
+
+  log(`${indices.length}개 캐릭터 갱신 시작`,'info');
+
+  for(let i=0;i<indices.length;i+=BATCH){
+    const batch=indices.slice(i,i+BATCH);
+    batch.forEach(j=>{chars[j]._status='loading';}); render();
+
+    await Promise.all(batch.map(async j=>{
+      try{
+        const res=await fetch(`/api/refresh?server=${chars[j].server}&key=${chars[j].key}`);
+        const data=await res.json();
+        if(data.ok){chars[j]._status='done';chars[j]._refreshTime=data.refreshTime;ok++}else{chars[j]._status='error';fail++}
+      }catch{chars[j]._status='error';fail++}
+    }));
+
+    done+=batch.length;
+    $('progressFill').style.width=`${(done/indices.length)*100}%`;
+    batch.forEach(j=>log(`${chars[j].name} ${chars[j]._status==='done'?'✓':'✗'}`,chars[j]._status==='done'?'ok':'err'));
+    render();
+    if(i+BATCH<indices.length) await new Promise(r=>setTimeout(r,500));
+  }
+
+  log(`완료! ✓${ok}${fail?' ✗'+fail:''}`,'info');
+
+  // 갱신된 수치로 업데이트
+  try {
+    const prevStatus = Object.fromEntries(chars.map(c => [c.key, c._status]));
+    const prevRefreshTime = Object.fromEntries(chars.map(c => [c.key, c._refreshTime]));
+    const res = await fetch(`/api/search?server=${$('server').value}&name=${encodeURIComponent($('name').value.trim())}`);
+    const data = await res.json();
+    if (!data.error && data.characters?.length) {
+      chars = data.characters.map(c => ({
+        ...c,
+        avatarUrl: `https://img-api.neople.co.kr/df/servers/${c.server}/characters/${c.key}?zoom=1`,
+        _status: prevStatus[c.key] || 'idle',
+        _refreshTime: prevRefreshTime[c.key] ?? null
+      }));
+      render();
+      log('수치 업데이트 완료', 'info');
+    }
+  } catch(e) {}
+
+  busy=false; $('goBtn').disabled=false; $('goBtn').textContent='선택 갱신';
+}
+
+$('name').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+$('name').focus();
+</script>
+</body>
+</html>
