@@ -84,7 +84,6 @@
     .header{margin-bottom:20px}
 
     .search{flex-wrap:wrap}
-    .search select{width:100%}
     .search input{flex:1;min-width:0}
     .search button{flex:none;white-space:nowrap}
 
@@ -111,18 +110,7 @@
   </div>
 
   <div class="search">
-    <select id="server">
-      <option value="adven">모험단</option>
-      <option value="cain">카인</option>
-      <option value="diregie">디레지에</option>
-      <option value="siroco">시로코</option>
-      <option value="prey">프레이</option>
-      <option value="casillas">카시야스</option>
-      <option value="hilder">힐더</option>
-      <option value="anton">안톤</option>
-      <option value="bakal">바칼</option>
-    </select>
-    <input type="text" id="name" placeholder="모험단명 또는 캐릭터명" maxlength="20">
+    <input type="text" id="name" placeholder="모험단명" maxlength="20">
     <button id="searchBtn" onclick="doSearch()">검색</button>
   </div>
 
@@ -158,7 +146,6 @@ let busy = false;
 const $ = id => document.getElementById(id);
 
 async function doSearch() {
-  const server = $('server').value;
   const name = $('name').value.trim();
   if (!name) return $('name').focus();
 
@@ -170,7 +157,7 @@ async function doSearch() {
   $('list').innerHTML = '<div class="empty"><div class="emoji">⏳</div>검색 중...</div>';
 
   try {
-    const res = await fetch(`/api/search?server=${server}&name=${encodeURIComponent(name)}`);
+    const res = await fetch(`/api/search?server=adven&name=${encodeURIComponent(name)}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
@@ -266,7 +253,7 @@ async function doRefresh() {
   try {
     const prevStatus = Object.fromEntries(chars.map(c => [c.key, c._status]));
     const prevRefreshTime = Object.fromEntries(chars.map(c => [c.key, c._refreshTime]));
-    const res = await fetch(`/api/search?server=${$('server').value}&name=${encodeURIComponent($('name').value.trim())}`);
+    const res = await fetch(`/api/search?server=adven&name=${encodeURIComponent($('name').value.trim())}`);
     const data = await res.json();
     if (!data.error && data.characters?.length) {
       chars = data.characters.map(c => ({
