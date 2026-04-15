@@ -163,14 +163,15 @@
   .bid-list{display:flex;flex-direction:column;gap:4px}
   .bid-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px}
   .bid-row.hdr{background:transparent;border:none;padding:2px 14px;font-size:11px;color:var(--text3);font-weight:700}
-  .bid-row.forbidden{opacity:.4}
+  .bid-row.forbidden{background:#f8717115;border-color:#f8717133;border-left:3px solid #f87171}
   .bid-item-name{font-size:13px;font-weight:700;color:var(--text)}
-  .bid-item-name.forbidden{color:var(--text5)}
+  .bid-item-name.forbidden{color:#f87171}
   .bid-val{text-align:right}
   .bid-limit{color:#60a5fa;font-weight:700}
   .bid-next{color:#f87171;text-align:right}
   .bid-meta{font-size:11px;color:var(--text4);text-align:right}
-  .bid-forbidden{color:#f87171;font-size:11px;text-align:right}
+  .bid-forbidden{display:flex;align-items:center;gap:5px;grid-column:2/5;justify-content:flex-end;color:#f87171;font-size:11px;font-weight:700}
+  .bid-forbidden::before{content:'⛔';font-size:12px}
 
   .s-loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
   .s-spin{display:inline-block;animation:spin 1s linear infinite;font-size:20px;margin-bottom:8px}
@@ -588,7 +589,7 @@ function renderBids(best) {
             ? `<div class="bid-val bid-limit">${fmt(r.safeBid)}G</div>
                <div class="bid-val bid-next">${fmt(r.nextBid)}G ✗</div>
                <div class="bid-val bid-meta">+${fmt(r.payback)} / ${fmt(r.net)}G</div>`
-            : `<div class="bid-forbidden" style="grid-column:2/5;text-align:right">입찰 금지 (가치 ${fmt(r.minVal)}G)</div>`}
+            : `<div class="bid-forbidden">입찰 금지 (가치 ${fmt(r.minVal)}G)</div>`}
         </div>`).join('')}
       </div>
     </div>`;
