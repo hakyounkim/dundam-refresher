@@ -1,64 +1,114 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>던담 일괄 갱신기</title>
+<title>던파 유틸</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Noto Sans KR',sans-serif;background:#0a0a0a;color:#ddd;min-height:100vh}
-  .container{max-width:640px;margin:0 auto;padding:40px 20px}
-  .header{margin-bottom:32px}
-  h1{font-size:28px;font-weight:900;background:linear-gradient(135deg,#ff6b6b,#ffa36b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-  .sub{color:#555;font-size:13px}
+  :root{
+    --bg:#0f1117;--card:#1a1d27;--tab-bg:#161922;--tab-active:#1e2130;
+    --border:#2a2d3a;--text:#e2e4e9;--text2:#6b7280;--text3:#555e72;
+    --text4:#8b93a8;--text5:#3a3f52;--text6:#444;
+    --avatar-bg:#252a3b;--log-bg:#13151e;--log-text:#555;
+    --best-bg:#1c1830;--best-border:#a78bfa44;
+    --chip-bg:#1a1d27;--chip-del:#444;
+    --input-bg:#1a1d27;--ctrl-bg:#1a1d27;--basis-bg:#1a1d27;
+    --char-on-bg:#1e1527;--char-hover:#3a3f52;
+    --error-bg:#1a0a0a;--error-border:#3a1010;
+    --tab-inactive:#555;--tab-inactive-h:#aaa;
+    --shadow:#0006;
+  }
+  [data-theme="light"]{
+    --bg:#f0f2f8;--card:#ffffff;--tab-bg:#e4e7f2;--tab-active:#ffffff;
+    --border:#d0d5e8;--text:#1a1d27;--text2:#5a6278;--text3:#6b7280;
+    --text4:#606878;--text5:#9097b0;--text6:#9097b0;
+    --avatar-bg:#e8eaf5;--log-bg:#f0f2f8;--log-text:#6b7280;
+    --best-bg:#f3eeff;--best-border:#a78bfa88;
+    --chip-bg:#ffffff;--chip-del:#9097b0;
+    --input-bg:#ffffff;--ctrl-bg:#ffffff;--basis-bg:#ffffff;
+    --char-on-bg:#ede8ff;--char-hover:#d0d5e8;
+    --error-bg:#fff0f0;--error-border:#ffcccc;
+    --tab-inactive:#888;--tab-inactive-h:#333;
+    --shadow:#0001;
+  }
 
-  .search{display:flex;gap:8px;margin-bottom:24px}
-  .search select,.search input,.search button{font-family:inherit;font-size:14px;border:1px solid #222;background:#141414;color:#ddd;border-radius:8px;padding:10px 14px;outline:none;transition:border-color .2s}
-  .search select{width:110px;cursor:pointer}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}
+  .container{max-width:680px;margin:0 auto;padding:32px 20px}
+
+  /* ── 탭 + 테마 토글 ── */
+  .tab-bar{display:flex;gap:8px;margin-bottom:28px;align-items:center}
+  .tabs{display:flex;gap:4px;flex:1;background:var(--tab-bg);border:1px solid var(--border);border-radius:10px;padding:4px}
+  .tab{flex:1;font-family:inherit;font-size:13px;font-weight:700;background:none;border:none;color:var(--tab-inactive);padding:9px 0;border-radius:7px;cursor:pointer;transition:all .18s}
+  .tab:hover{color:var(--tab-inactive-h)}
+  .tab.active{background:var(--tab-active);color:var(--text);box-shadow:0 1px 3px var(--shadow)}
+  .theme-btn{flex-shrink:0;width:36px;height:36px;background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .18s}
+  .theme-btn:hover{border-color:var(--text5)}
+
+  /* ── 공통 헤더 ── */
+  .pane-header{margin-bottom:24px}
+  .pane-header h1{font-size:26px;font-weight:900;margin-bottom:4px}
+  .pane-header .sub{color:var(--text2);font-size:13px}
+  .h-refresh{background:linear-gradient(135deg,#ff6b6b,#ffa36b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .h-soul{background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+  /* ── 갱신기: 검색 ── */
+  .search{display:flex;gap:8px;margin-bottom:8px}
+  .search input,.search button{font-family:inherit;font-size:14px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);border-radius:8px;padding:10px 14px;outline:none;transition:border-color .2s}
   .search input{flex:1;min-width:0}
   .search input:focus{border-color:#ff6b6b}
-  .search input::placeholder{color:#444}
+  .search input::placeholder{color:var(--text6)}
   .search button{background:linear-gradient(135deg,#ff6b6b,#ff8e53);color:#fff;border:none;font-weight:700;cursor:pointer;padding:10px 20px;transition:opacity .2s;white-space:nowrap}
   .search button:hover{opacity:.9}
   .search button:disabled{opacity:.4;cursor:not-allowed}
 
+  /* ── 최근 검색 ── */
+  .recent-wrap{min-height:0;margin-bottom:16px}
+  .recent-list{display:flex;flex-wrap:wrap;gap:6px}
+  .recent-chip{display:inline-flex;align-items:center;gap:4px;background:var(--chip-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;color:var(--text4);cursor:pointer;transition:all .15s;white-space:nowrap}
+  .recent-chip:hover{border-color:#ff6b6b55;color:var(--text)}
+  .chip-del{background:none;border:none;color:var(--chip-del);cursor:pointer;font-size:13px;padding:0 0 0 2px;line-height:1;transition:color .15s}
+  .chip-del:hover{color:#f87171}
+
+  /* ── 갱신기: 컨트롤 ── */
   .controls{display:none;justify-content:space-between;align-items:center;margin-bottom:12px}
   .controls.show{display:flex}
   .ctrl-left{display:flex;gap:6px;align-items:center}
-  .ctrl-left button{font-family:inherit;font-size:11px;background:#141414;color:#888;border:1px solid #222;border-radius:6px;padding:5px 10px;cursor:pointer;transition:all .2s}
+  .ctrl-left button{font-family:inherit;font-size:11px;background:var(--ctrl-bg);color:var(--text4);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;transition:all .2s}
   .ctrl-left button:hover{border-color:#ff6b6b;color:#ff6b6b}
-  .ctrl-count{font-size:11px;color:#555}
+  .ctrl-count{font-size:11px;color:var(--text2)}
   .go-btn{font-family:inherit;font-size:13px;font-weight:700;background:linear-gradient(135deg,#ff6b6b,#ff8e53);color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;transition:opacity .2s}
   .go-btn:hover{opacity:.9}
   .go-btn:disabled{opacity:.4;cursor:not-allowed}
 
-  .progress{height:3px;background:#1a1a1a;border-radius:2px;margin-bottom:12px;display:none;overflow:hidden}
+  .progress{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px;display:none;overflow:hidden}
   .progress.show{display:block}
   .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#ff6b6b,#ffa36b);border-radius:2px;transition:width .3s}
 
+  /* ── 갱신기: 캐릭 목록 ── */
   .char-list{display:flex;flex-direction:column;gap:4px}
-  .empty{text-align:center;padding:80px 20px;color:#333;font-size:14px}
+  .empty{text-align:center;padding:60px 20px;color:var(--text3);font-size:14px}
   .empty .emoji{font-size:40px;margin-bottom:12px}
 
-  .char{display:flex;align-items:center;gap:10px;background:#111;border:1px solid #1a1a1a;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;user-select:none}
-  .char:hover{border-color:#282828}
-  .char.on{background:#160f0f;border-color:#ff6b6b22}
+  .char{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;user-select:none}
+  .char:hover{border-color:var(--char-hover)}
+  .char.on{background:var(--char-on-bg);border-color:#ff6b6b33}
   .char.loading{border-color:#ffa36b55}
   .char.done{border-color:#4caf5055}
   .char.error{border-color:#f4433655}
 
-  .chk{width:18px;height:18px;border:2px solid #333;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .15s}
+  .chk{width:18px;height:18px;border:2px solid var(--text5);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .15s}
   .char.on .chk{background:#ff6b6b;border-color:#ff6b6b}
 
-  .avatar{width:36px;height:36px;border-radius:8px;background:#1a1a1a;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .avatar{width:36px;height:36px;border-radius:8px;background:var(--avatar-bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
   .avatar img{width:100%;height:100%;object-fit:cover;display:block}
   .avatar svg{width:20px;height:20px;opacity:.35}
 
   .info{flex:1;min-width:0}
   .info-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .info-detail{font-size:11px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .info-detail{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   .rank{font-size:11px;color:#ff6b6b;text-align:right;flex-shrink:0;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rank.buff{color:#66bbff}
@@ -68,79 +118,246 @@
   .status.s-done{color:#4caf50}
   .status.s-err{color:#f44336}
 
-  .log{margin-top:16px;background:#0d0d0d;border-radius:8px;padding:8px 10px;font-size:10px;color:#444;font-family:'Courier New',monospace;max-height:100px;overflow-y:auto;display:none;border:1px solid #1a1a1a}
+  .log{margin-top:16px;background:var(--log-bg);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--log-text);font-family:'Courier New',monospace;max-height:100px;overflow-y:auto;display:none;border:1px solid var(--border)}
   .log.show{display:block}
   .log div{padding:1px 0}
   .log .l-ok{color:#4caf50}
   .log .l-err{color:#f44336}
   .log .l-info{color:#ffa36b}
 
-  .footer{text-align:center;margin-top:48px;color:#252525;font-size:11px}
-  .footer a{color:#333;text-decoration:none}
-  .footer a:hover{color:#ff6b6b}
+  /* ── 소울 계산기 ── */
+  .soul-meta{display:flex;align-items:center;gap:10px;color:var(--text6);font-size:12px;margin-bottom:20px}
+  .soul-ts{color:var(--text2)}
+  .soul-refresh{background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;transition:color .2s}
+  .soul-refresh:hover{color:#a78bfa}
+  .soul-refresh:disabled{opacity:.4;cursor:not-allowed}
 
+  .section{margin-bottom:28px}
+  .section-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.06em;margin-bottom:10px;padding-left:2px}
+
+  .soul-list{display:flex;flex-direction:column;gap:4px}
+  .soul-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s;cursor:pointer}
+  .soul-card:hover{border-color:var(--char-hover)}
+  .soul-card.best{border-color:var(--best-border);background:var(--best-bg)}
+
+  .soul-row{display:flex;align-items:center;gap:12px;padding:11px 14px}
+  .soul-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .soul-name{flex:1;font-size:13px;font-weight:700}
+  .soul-exchange{font-size:11px;color:var(--text3);margin-right:4px}
+  .soul-price{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+  .soul-price.best-price{color:#a78bfa}
+  .best-badge{font-size:10px;font-weight:700;color:#a78bfa;background:#a78bfa15;border:1px solid #a78bfa33;border-radius:4px;padding:2px 6px;margin-left:6px}
+  .chevron{font-size:10px;color:var(--text5);transition:transform .2s;flex-shrink:0}
+  .soul-card.open .chevron{transform:rotate(180deg)}
+
+  .soul-detail{display:none;padding:0 14px 12px 36px;font-size:11px;color:var(--text2);border-top:1px solid var(--border)}
+  .soul-card.open .soul-detail{display:block}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;padding-top:10px}
+  .detail-label{color:var(--text3);margin-bottom:2px}
+  .detail-value{color:var(--text4);font-size:12px}
+
+  .basis-bar{background:var(--basis-bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
+  .basis-bar span{color:#a78bfa;font-weight:700}
+  .basis-hint{color:var(--text3);font-size:11px;margin-left:auto}
+
+  .bid-list{display:flex;flex-direction:column;gap:4px}
+  .bid-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px}
+  .bid-row.hdr{background:transparent;border:none;padding:2px 14px;font-size:11px;color:var(--text3);font-weight:700}
+  .bid-row.forbidden{opacity:.4}
+  .bid-item-name{font-size:13px;font-weight:700;color:var(--text)}
+  .bid-item-name.forbidden{color:var(--text5)}
+  .bid-val{text-align:right}
+  .bid-limit{color:#60a5fa;font-weight:700}
+  .bid-next{color:#f87171;text-align:right}
+  .bid-meta{font-size:11px;color:var(--text4);text-align:right}
+  .bid-forbidden{color:#f87171;font-size:11px;text-align:right}
+
+  .s-loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
+  .s-spin{display:inline-block;animation:spin 1s linear infinite;font-size:20px;margin-bottom:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error-msg{background:var(--error-bg);border:1px solid var(--error-border);border-radius:8px;padding:12px 16px;color:#f87171;font-size:12px;text-align:center}
+
+  /* ── 푸터 ── */
+  .footer{text-align:center;margin-top:48px;color:var(--text5);font-size:11px}
+  .footer a{color:var(--text4);text-decoration:none}
+  .footer a:hover{color:var(--text)}
+
+  /* ── 반응형 ── */
   @media(max-width:480px){
-    .container{padding:24px 14px}
-    h1{font-size:22px}
-    .header{margin-bottom:20px}
-
+    .container{padding:20px 14px}
+    .pane-header h1{font-size:22px}
     .search{flex-wrap:wrap}
-    .search input{flex:1;min-width:0}
-    .search button{flex:none;white-space:nowrap}
-
+    .search button{white-space:nowrap}
     .controls{flex-wrap:wrap;gap:8px}
     .ctrl-left{flex:1}
     .go-btn{width:100%;padding:11px 0;font-size:14px}
-
-    .char{padding:10px 10px;gap:8px}
+    .char{padding:10px;gap:8px}
     .avatar{width:32px;height:32px}
     .info-name{font-size:12px}
-    .info-detail{font-size:10px}
     .rank{max-width:90px;font-size:10px}
-    .chk{width:20px;height:20px;flex-shrink:0}
-
-    .log{font-size:10px;max-height:120px}
+    .bid-row{grid-template-columns:1fr 1fr;gap:4px 8px}
+    .bid-row.hdr div:nth-child(4),.bid-row div:nth-child(4){display:none}
   }
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1>⚡ 던담 일괄 갱신기</h1>
-    <p class="sub">모험단 검색 → 캐릭 선택 → 한번에 갱신</p>
-  </div>
 
-  <div class="search">
-    <input type="text" id="name" placeholder="모험단명" maxlength="20">
-    <button id="searchBtn" onclick="doSearch()">검색</button>
-  </div>
-
-  <div class="controls" id="controls">
-    <div class="ctrl-left">
-      <button onclick="selectAll()">전체 선택</button>
-      <button onclick="selectNone()">전체 해제</button>
-      <span class="ctrl-count" id="count"></span>
+  <!-- ── 탭 네비 ── -->
+  <div class="tab-bar">
+    <div class="tabs">
+      <button class="tab" id="tab-refresh" onclick="switchTab('refresh')">⚡ 갱신기</button>
+      <button class="tab" id="tab-soul"    onclick="switchTab('soul')">💎 계시 환산기</button>
     </div>
-    <button class="go-btn" id="goBtn" onclick="doRefresh()">선택 갱신</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="테마 변경">🌙</button>
   </div>
 
-  <div class="progress" id="progress"><div class="progress-fill" id="progressFill"></div></div>
+  <!-- ══════════════════════════════════
+       TAB 1: 던담 일괄 갱신기
+  ══════════════════════════════════ -->
+  <div id="pane-refresh">
+    <div class="pane-header">
+      <h1 class="h-refresh">⚡ 던담 일괄 갱신기</h1>
+      <p class="sub">모험단 검색 → 캐릭 선택 → 한번에 갱신</p>
+    </div>
 
-  <div class="char-list" id="list">
-    <div class="empty">
-      <div class="emoji">🔍</div>
-      모험단을 검색하면 캐릭터 목록이 표시됩니다
+    <div class="search">
+      <input type="text" id="name" placeholder="모험단명" maxlength="20">
+      <button id="searchBtn" onclick="doSearch()">검색</button>
+    </div>
+
+    <!-- 최근 검색 -->
+    <div class="recent-wrap">
+      <div class="recent-list" id="recentList"></div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="ctrl-left">
+        <button onclick="selectAll()">전체 선택</button>
+        <button onclick="selectNone()">전체 해제</button>
+        <span class="ctrl-count" id="count"></span>
+      </div>
+      <button class="go-btn" id="goBtn" onclick="doRefresh()">선택 갱신</button>
+    </div>
+
+    <div class="progress" id="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="char-list" id="list">
+      <div class="empty">
+        <div class="emoji">🔍</div>
+        모험단을 검색하면 캐릭터 목록이 표시됩니다
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 2: 종말의 계시 환산기
+  ══════════════════════════════════ -->
+  <div id="pane-soul" style="display:none">
+    <div class="pane-header">
+      <h1 class="h-soul">💎 종말의 계시 환산기</h1>
+      <div class="soul-meta">
+        <span class="soul-ts" id="soulTs">불러오는 중...</span>
+        <button class="soul-refresh" id="soulRefreshBtn" onclick="soulLoad()" title="새로고침">↺</button>
+      </div>
+    </div>
+
+    <div id="soulApp">
+      <div class="s-loading"><div class="s-spin">⏳</div><div>데이터 불러오는 중...</div></div>
     </div>
   </div>
-
-  <div class="log" id="log"></div>
 
   <div class="footer">
-    던담 일괄 갱신기 · <a href="https://dundam.xyz" target="_blank">dundam.xyz</a> 비공식 유틸리티
+    던파 유틸 · <a href="https://dundam.xyz" target="_blank">dundam.xyz</a> 비공식
   </div>
 </div>
 
 <script>
+// ════════════════════════════════════
+//  테마 토글
+// ════════════════════════════════════
+(function() {
+  const saved = localStorage.getItem('dundam_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
+  });
+})();
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('dundam_theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+}
+
+// ════════════════════════════════════
+//  탭 전환
+// ════════════════════════════════════
+function switchTab(t) {
+  document.getElementById('pane-refresh').style.display = t === 'refresh' ? '' : 'none';
+  document.getElementById('pane-soul').style.display    = t === 'soul'    ? '' : 'none';
+  document.getElementById('tab-refresh').classList.toggle('active', t === 'refresh');
+  document.getElementById('tab-soul').classList.toggle('active',    t === 'soul');
+  location.hash = t === 'soul' ? 'soul' : '';
+  if (t === 'soul' && !soulLoaded) soulLoad();
+}
+
+let soulLoaded = false;
+
+// 페이지 로드 시 해시 복원
+(function() {
+  const t = location.hash === '#soul' ? 'soul' : 'refresh';
+  switchTab(t);
+})();
+
+// ════════════════════════════════════
+//  최근 검색 (localStorage)
+// ════════════════════════════════════
+const RECENT_KEY = 'dundam_recent';
+const RECENT_MAX = 10;
+
+function getRecent() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveRecent(list) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+}
+function addRecent(name) {
+  const list = getRecent().filter(v => v !== name);
+  list.unshift(name);
+  saveRecent(list.slice(0, RECENT_MAX));
+  renderRecent();
+}
+function delRecent(name, e) {
+  e.stopPropagation();
+  saveRecent(getRecent().filter(v => v !== name));
+  renderRecent();
+}
+function searchFrom(name) {
+  document.getElementById('name').value = name;
+  doSearch();
+}
+function renderRecent() {
+  const list = getRecent();
+  const el = document.getElementById('recentList');
+  if (!list.length) { el.innerHTML = ''; return; }
+  el.innerHTML = list.map(n =>
+    `<span class="recent-chip" onclick="searchFrom('${n.replace(/'/g,"\\'")}')">
+      ${n}
+      <button class="chip-del" onclick="delRecent('${n.replace(/'/g,"\\'")}',event)">×</button>
+    </span>`
+  ).join('');
+}
+renderRecent();
+
+// ════════════════════════════════════
+//  던담 일괄 갱신기
+// ════════════════════════════════════
 let chars = [];
 let selected = new Set();
 let busy = false;
@@ -176,6 +393,7 @@ async function doSearch() {
     if (!chars.length) {
       $('list').innerHTML = '<div class="empty"><div class="emoji">😢</div>검색 결과가 없습니다</div>';
     } else {
+      addRecent(name);
       selected = new Set(chars.map((_, i) => i));
       render();
       $('controls').classList.add('show');
@@ -194,10 +412,8 @@ function render() {
     const on = selected.has(i);
     const cls = ['char', on?'on':'', c._status==='loading'?'loading':'', c._status==='done'?'done':'', c._status==='error'?'error':''].filter(Boolean).join(' ');
     const statusHtml = {loading:'<div class="status s-load">···</div>',done:'<div class="status s-done">✓</div>',error:'<div class="status s-err">✗</div>'}[c._status]||'<div class="status"></div>';
-
     const isBuff = !!c.buffScore;
     const rankText = isBuff ? `버프 ${c.buffScore}` : (c.ozma || '');
-
     return `<div class="${cls}" onclick="toggle(${i})">
       <div class="chk">${on?'✓':''}</div>
       <div class="avatar"><img src="${c.avatarUrl}" onerror="imgErr(this)"></div>
@@ -212,7 +428,7 @@ function render() {
 }
 
 function toggle(i) { if(busy)return; selected.has(i)?selected.delete(i):selected.add(i); render(); updateCount(); }
-function selectAll() { if(busy)return; chars.forEach((_,i)=>selected.add(i)); render(); updateCount(); }
+function selectAll()  { if(busy)return; chars.forEach((_,i)=>selected.add(i));  render(); updateCount(); }
 function selectNone() { if(busy)return; selected.clear(); render(); updateCount(); }
 function updateCount() { $('count').textContent=`${selected.size} / ${chars.length}`; $('goBtn').disabled=selected.size===0; }
 
@@ -231,7 +447,6 @@ async function doRefresh() {
   const indices=[...selected].sort((a,b)=>a-b);
   let done=0,ok=0,fail=0;
   const BATCH=5;
-
   log(`${indices.length}개 캐릭터 갱신 시작`,'info');
 
   for(let i=0;i<indices.length;i+=BATCH){
@@ -255,7 +470,6 @@ async function doRefresh() {
 
   log(`완료! ✓${ok}${fail?' ✗'+fail:''}`,'info');
 
-  // 갱신된 수치로 업데이트
   try {
     const prevStatus = Object.fromEntries(chars.map(c => [c.key, c._status]));
     const prevRefreshTime = Object.fromEntries(chars.map(c => [c.key, c._refreshTime]));
@@ -276,8 +490,130 @@ async function doRefresh() {
   busy=false; $('goBtn').disabled=false; $('goBtn').textContent='선택 갱신';
 }
 
-$('name').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+$('name').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
 $('name').focus();
+
+// ════════════════════════════════════
+//  종말의 계시 환산기
+// ════════════════════════════════════
+const RARITY_COLOR = {
+  rare:'#9ca3af', unique:'#fbbf24', legendary:'#fb923c',
+  radiant:'#34d399', epic:'#c084fc', primordial:'#f87171',
+};
+const AUCTION_ITEMS = [
+  { name:'100 ~ 300 주화',  val:100 },
+  { name:'200 ~ 300 주화',  val:200 },
+  { name:'200 ~ 400 주화',  val:200 },
+  { name:'300 ~ 400 주화',  val:300 },
+  { name:'500 ~ 700 주화',  val:500 },
+  { name:'700 ~ 1000 주화', val:700 },
+];
+const fmt = n => n == null ? '-' : Math.round(n).toLocaleString();
+
+function soulToggle(key) {
+  document.getElementById('sc-' + key).classList.toggle('open');
+}
+
+function renderSouls(data) {
+  const valid = data.filter(s => s.trade_value != null);
+  const best  = valid.reduce((a,b) => a.trade_value < b.trade_value ? a : b, valid[0]);
+
+  return `
+    <div class="section">
+      <div class="section-title">소울 결정별 계시 단가 (경매 10건 평균 기준)</div>
+      <div class="soul-list">
+        ${data.map(s => {
+          const isBest = best && s.key === best.key;
+          return `
+          <div class="soul-card${isBest?' best':''}" id="sc-${s.key}" onclick="soulToggle('${s.key}')">
+            <div class="soul-row">
+              <div class="soul-dot" style="background:${RARITY_COLOR[s.key]||'#888'}"></div>
+              <div class="soul-name">${s.name}</div>
+              <div class="soul-exchange">÷${s.exchange}</div>
+              <div class="soul-price${isBest?' best-price':''}">${fmt(s.trade_value)}G</div>
+              ${isBest?'<div class="best-badge">최저</div>':''}
+              <div class="chevron">▼</div>
+            </div>
+            <div class="soul-detail">
+              <div class="detail-grid">
+                <div><div class="detail-label">현재 경매 평균가</div><div class="detail-value">${fmt(s.average_price)}G (${s.auction_count}건)</div></div>
+                <div><div class="detail-label">현재 기준 계시 단가</div><div class="detail-value">${fmt(s.trade_value)}G</div></div>
+                <div><div class="detail-label">최근 거래 평균가</div><div class="detail-value">${fmt(s.average_sold_price)}G (${s.sold_count}건)</div></div>
+                <div><div class="detail-label">거래 기준 계시 단가</div><div class="detail-value">${fmt(s.sold_trade_value)}G</div></div>
+                <div><div class="detail-label">최저가 / 최고가</div><div class="detail-value">${fmt(s.lowest_price)}G ~ ${fmt(s.highest_price)}G</div></div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    ${best ? renderBids(best) : ''}`;
+}
+
+// 1M에서 시작해 5%씩 올라가는 입찰 단계 중 limit 이하 마지막 값
+function lastSafeBid(limit) {
+  if (limit < 1_000_000) return null;
+  let bid = 1_000_000;
+  while (Math.round(bid * 1.05) <= limit) {
+    bid = Math.round(bid * 1.05);
+  }
+  return bid;
+}
+
+function renderBids(best) {
+  const bestCost = best.trade_value;
+  const rows = AUCTION_ITEMS.map(item => {
+    const minVal   = item.val * bestCost;
+    const limit    = Math.floor(minVal / 0.775);
+    const safeBid  = lastSafeBid(limit);
+    const ok       = safeBid != null;
+    const nextBid  = ok ? Math.round(safeBid * 1.05) : null;
+    const payback  = ok ? Math.floor(safeBid * 0.225) : null;
+    const net      = ok ? safeBid - payback : null;
+    return { ...item, minVal, limit, safeBid, nextBid, payback, net, ok };
+  });
+  return `
+    <div class="section">
+      <div class="section-title">주화 경매 입찰 한계가 계산</div>
+      <div class="basis-bar">
+        기준: <span>${best.name}</span> — 계시 1개당 <span>${fmt(bestCost)}G</span>
+        <span class="basis-hint">낙찰금 22.5% 환급 · 1M 시작 5% 상승</span>
+      </div>
+      <div class="bid-list">
+        <div class="bid-row hdr"><div>품목</div><div class="bid-val">마지막 입찰가</div><div class="bid-val">다음 단계</div><div class="bid-val">분배금 / 실지출</div></div>
+        ${rows.map(r => `
+        <div class="bid-row${r.ok?'':' forbidden'}">
+          <div class="bid-item-name${r.ok?'':' forbidden'}">${r.name}</div>
+          ${r.ok
+            ? `<div class="bid-val bid-limit">${fmt(r.safeBid)}G</div>
+               <div class="bid-val bid-next">${fmt(r.nextBid)}G ✗</div>
+               <div class="bid-val bid-meta">+${fmt(r.payback)} / ${fmt(r.net)}G</div>`
+            : `<div class="bid-forbidden" style="grid-column:2/5;text-align:right">입찰 금지 (가치 ${fmt(r.minVal)}G)</div>`}
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+async function soulLoad() {
+  const btn = document.getElementById('soulRefreshBtn');
+  const app = document.getElementById('soulApp');
+  btn.disabled = true;
+  document.getElementById('soulTs').textContent = '불러오는 중...';
+  app.innerHTML = '<div class="s-loading"><div class="s-spin">⏳</div><div>데이터 불러오는 중...</div></div>';
+
+  try {
+    const res  = await fetch('/api/soul');
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    document.getElementById('soulTs').textContent = json.timestamp + ' 기준';
+    app.innerHTML = renderSouls(json.data);
+    soulLoaded = true;
+  } catch(e) {
+    app.innerHTML = `<div class="error-msg">데이터 로드 실패: ${e.message}</div>`;
+    document.getElementById('soulTs').textContent = '오류';
+  }
+  btn.disabled = false;
+}
 </script>
 </body>
 </html>
