@@ -225,8 +225,10 @@
   <!-- ── 탭 네비 ── -->
   <div class="tab-bar">
     <div class="tabs">
-      <button class="tab" id="tab-refresh" onclick="switchTab('refresh')">⚡ 갱신기</button>
-      <button class="tab" id="tab-soul"    onclick="switchTab('soul')">💎 계시 환산기</button>
+      <button class="tab" id="tab-refresh"    onclick="switchTab('refresh')">⚡ 갱신기</button>
+      <button class="tab" id="tab-soul"       onclick="switchTab('soul')">💎 계시 환산기</button>
+      <button class="tab" id="tab-pact-gear"  onclick="switchTab('pact-gear')">⚔️ 서약 장비</button>
+      <button class="tab" id="tab-pact-soul"  onclick="switchTab('pact-soul')">💠 서약 결정</button>
     </div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="테마 변경">🌙</button>
   </div>
@@ -290,6 +292,55 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════════════
+       TAB 3/4: 서약 획득 내역 (장비 / 결정 두 탭이 공유)
+  ══════════════════════════════════ -->
+  <div id="pane-pact" style="display:none">
+    <div class="pane-header">
+      <h1 class="h-refresh" id="pactHeader">⚔️ 서약 장비 획득 내역</h1>
+      <p class="sub">모험단 등록 → 캐릭별 갱신 → 에픽/태초 타임라인</p>
+    </div>
+
+    <div class="search">
+      <input type="text" id="pactAdventure" placeholder="모험단명" maxlength="20">
+      <button onclick="pactRegister()">등록/갱신</button>
+    </div>
+
+    <div class="controls" id="pactControls" style="display:none">
+      <div class="ctrl-left">
+        <button onclick="pactSyncAll()">전체 캐릭 갱신</button>
+        <span class="ctrl-count" id="pactCount"></span>
+      </div>
+      <div>
+        <label style="font-size:12px">등급
+          <select id="pactRarity" onchange="pactLoadEvents()" style="padding:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px">
+            <option value="태초,에픽">태초+에픽</option>
+            <option value="태초">태초만</option>
+            <option value="에픽">에픽만</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="progress" id="pactProgress"><div class="progress-fill" id="pactProgressFill"></div></div>
+
+    <div id="pactCharList" class="char-list" style="margin-bottom:18px"></div>
+
+    <div id="pactStats" style="display:none;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+      <div style="font-weight:700;margin-bottom:8px">획득 통계</div>
+      <div id="pactStatsBody" style="font-size:13px;line-height:1.8"></div>
+    </div>
+
+    <div id="pactEvents" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div class="empty" style="padding:30px;text-align:center">
+        <div class="emoji">🔮</div>
+        모험단을 등록하고 캐릭을 갱신하면 획득 내역이 여기 표시됩니다
+      </div>
+    </div>
+
+    <div class="log" id="pactLog"></div>
+  </div>
+
   <div class="toast" id="toast"><span class="t-spin">⏳</span><span id="toastMsg">불러오는 중...</span></div>
 
   <div class="footer">
@@ -321,19 +372,225 @@ function toggleTheme() {
 //  탭 전환
 // ════════════════════════════════════
 function switchTab(t) {
+  const isPact = t === 'pact-gear' || t === 'pact-soul';
   document.getElementById('pane-refresh').style.display = t === 'refresh' ? '' : 'none';
   document.getElementById('pane-soul').style.display    = t === 'soul'    ? '' : 'none';
-  document.getElementById('tab-refresh').classList.toggle('active', t === 'refresh');
-  document.getElementById('tab-soul').classList.toggle('active',    t === 'soul');
-  location.hash = t === 'soul' ? 'soul' : '';
+  document.getElementById('pane-pact').style.display    = isPact          ? '' : 'none';
+  document.getElementById('tab-refresh').classList.toggle('active',   t === 'refresh');
+  document.getElementById('tab-soul').classList.toggle('active',      t === 'soul');
+  document.getElementById('tab-pact-gear').classList.toggle('active', t === 'pact-gear');
+  document.getElementById('tab-pact-soul').classList.toggle('active', t === 'pact-soul');
+  location.hash = t === 'refresh' ? '' : t;
   if (t === 'soul' && !soulLoaded) soulLoad();
+  if (isPact) {
+    PACT_STATE.category = t === 'pact-soul' ? 'soul' : 'pact';
+    document.getElementById('pactHeader').textContent =
+      PACT_STATE.category === 'soul' ? '💠 서약 결정 획득 내역' : '⚔️ 서약 장비 획득 내역';
+    pactRestore();
+    pactLoadEvents();
+  }
 }
 
 let soulLoaded = false;
 
-// 페이지 로드 시 해시 복원
+// ════════════════════════════════════
+//  TAB 3: 서약 내역
+// ════════════════════════════════════
+const PACT_STATE = { adventureName: null, characters: [], category: 'pact' };
+
+const PACT_SERVER_KR = {
+  cain:'카인', diregie:'디레지에', siroco:'시로코', prey:'프레이',
+  casillas:'카시야스', hilder:'힐더', anton:'안톤', bakal:'바칼',
+};
+
+function pactSave() {
+  localStorage.setItem('pact_state', JSON.stringify({
+    adventureName: PACT_STATE.adventureName,
+    characters: PACT_STATE.characters,
+  }));
+}
+function pactRestore() {
+  try {
+    const s = JSON.parse(localStorage.getItem('pact_state') || '{}');
+    if (s.adventureName) {
+      document.getElementById('pactAdventure').value = s.adventureName;
+      if (!PACT_STATE.adventureName) {
+        PACT_STATE.adventureName = s.adventureName;
+        PACT_STATE.characters    = s.characters || [];
+        if (PACT_STATE.characters.length) pactRenderCharList();
+      }
+    }
+  } catch {}
+}
+
+function pactLog(msg) {
+  const el = document.getElementById('pactLog');
+  const ts = new Date().toLocaleTimeString('ko-KR');
+  el.innerHTML += `<div>[${ts}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function pactRegister() {
+  const adventureName = document.getElementById('pactAdventure').value.trim();
+  if (!adventureName) return alert('모험단명을 입력하세요');
+
+  pactLog(`${adventureName} 등록 시도…`);
+  try {
+    const res = await fetch('/api/adventure-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adventureName }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+
+    PACT_STATE.adventureName = adventureName;
+    PACT_STATE.characters    = json.characters;
+    pactSave();
+    const svList = (json.servers || []).map(s => PACT_SERVER_KR[s] || s).join(', ');
+    pactLog(`✓ ${json.characterCount}명 등록됨 (${svList})`);
+    pactRenderCharList();
+    pactLoadEvents();
+  } catch (e) {
+    pactLog(`✗ 등록 실패: ${e.message}`);
+    alert('등록 실패: ' + e.message);
+  }
+}
+
+function pactRenderCharList() {
+  const box = document.getElementById('pactCharList');
+  document.getElementById('pactControls').style.display = '';
+  document.getElementById('pactCount').textContent = `${PACT_STATE.characters.length}명`;
+  box.innerHTML = PACT_STATE.characters.map(c => {
+    const svKr = PACT_SERVER_KR[c.serverId] || c.serverId || '';
+    return `
+    <div class="char-row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div style="flex:1">
+        <div style="font-weight:700">${escapeHtml(c.characterName)} <span style="font-weight:400;font-size:11px;color:var(--muted)">[${escapeHtml(svKr)}]</span></div>
+        <div style="font-size:11px;color:var(--muted)">${escapeHtml(c.jobGrowName || '')} · 명성 ${c.fame ?? '-'}</div>
+      </div>
+      <button onclick="pactSyncOne('${c.characterId}', this)">갱신</button>
+    </div>`;
+  }).join('');
+}
+
+async function pactSyncOne(characterId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '갱신 중…'; }
+  try {
+    const res = await fetch('/api/character-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ characterId }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    pactLog(`✓ ${json.characterName}: 신규 ${json.insertedCount}건 / 조회 ${json.fetchedEventCount}건`);
+    if (btn) btn.textContent = '✓ ' + json.insertedCount;
+  } catch (e) {
+    pactLog(`✗ 갱신 실패 (${characterId}): ${e.message}`);
+    if (btn) btn.textContent = '재시도';
+  } finally {
+    if (btn) btn.disabled = false;
+    pactLoadEvents();
+  }
+}
+
+async function pactSyncAll() {
+  const fill = document.getElementById('pactProgressFill');
+  const total = PACT_STATE.characters.length;
+  let done = 0;
+  for (const c of PACT_STATE.characters) {
+    await pactSyncOne(c.characterId);
+    done++;
+    fill.style.width = Math.round(done * 100 / total) + '%';
+  }
+  setTimeout(() => { fill.style.width = '0%'; }, 1500);
+}
+
+async function pactLoadEvents() {
+  if (!PACT_STATE.adventureName) return;
+  const rarity   = document.getElementById('pactRarity').value;
+  const category = PACT_STATE.category || 'pact';
+  const qs = new URLSearchParams({
+    adventureName: PACT_STATE.adventureName,
+    rarity, category,
+  });
+  const res = await fetch(`/api/events?${qs}`);
+  const json = await res.json();
+  if (!res.ok) return pactLog(`✗ 조회 실패: ${json.error}`);
+  pactRenderEvents(json);
+}
+
+function pactRenderEvents({ rows, stats }) {
+  const box = document.getElementById('pactEvents');
+  const catLabel = PACT_STATE.category === 'soul' ? '서약 결정' : '서약 장비';
+  if (!rows.length) {
+    box.innerHTML = `<div class="empty" style="padding:30px;text-align:center"><div class="emoji">📭</div>조건에 맞는 ${catLabel} 획득 내역이 없습니다</div>`;
+    document.getElementById('pactStats').style.display = 'none';
+    return;
+  }
+
+  const statsBox = document.getElementById('pactStats');
+  const statsBody = document.getElementById('pactStatsBody');
+  const byCh = Object.entries(stats.byChannel).sort((a,b) => b[1] - a[1]);
+  const byCode = Object.entries(stats.byCode).sort((a,b) => b[1] - a[1]);
+  statsBody.innerHTML = `
+    <div><b>총 ${rows.length}건</b></div>
+    <div>경로: ${byCode.map(([k,v]) => `${k} ${v}`).join(' / ')}</div>
+    ${byCh.length ? `<div>채널: ${byCh.slice(0, 10).map(([k,v]) => `${k} ${v}`).join(' / ')}${byCh.length > 10 ? ' …' : ''}</div>` : ''}
+  `;
+  statsBox.style.display = '';
+
+  const pathLabel = code => ({550:'드랍',551:'레이드',552:'항아리',554:'제작',557:'카드'}[code] || `code ${code}`);
+  const rarityColor = r => r === '태초' ? '#4caf50' : r === '에픽' ? '#ffb300' : '#888';
+  const cell = 'padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;word-break:keep-all';
+  const html = [`
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:720px">
+      <thead>
+        <tr style="background:var(--tab-bg);font-weight:700;text-align:left">
+          <th style="${cell}">시각</th>
+          <th style="${cell}">캐릭</th>
+          <th style="${cell}">서버</th>
+          <th style="${cell};white-space:normal;min-width:180px">아이템</th>
+          <th style="${cell}">등급</th>
+          <th style="${cell}">경로</th>
+          <th style="${cell}">채널</th>
+          <th style="${cell}">던전</th>
+        </tr>
+      </thead>
+      <tbody>
+  `];
+  for (const r of rows) {
+    const when = new Date(r.occurred_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+    const svKr = PACT_SERVER_KR[r.server_id] || r.server_id || '-';
+    html.push(`
+      <tr>
+        <td style="${cell};color:var(--muted)">${when}</td>
+        <td style="${cell};font-weight:600">${escapeHtml(r.character_name)}</td>
+        <td style="${cell};color:var(--muted)">${escapeHtml(svKr)}</td>
+        <td style="${cell};white-space:normal">${escapeHtml(r.item_name)}</td>
+        <td style="${cell};color:${rarityColor(r.item_rarity)};font-weight:700">${r.item_rarity}</td>
+        <td style="${cell}">${pathLabel(r.event_code)}</td>
+        <td style="${cell}">${r.channel_name ? `${escapeHtml(r.channel_name)}${r.channel_no ? '-' + r.channel_no : ''}` : '-'}</td>
+        <td style="${cell}">${r.dungeon_name ? escapeHtml(r.dungeon_name) : '-'}</td>
+      </tr>
+    `);
+  }
+  html.push('</tbody></table></div>');
+  box.innerHTML = html.join('');
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// 페이지 로드 시 해시 복원 (PACT_STATE 등 선언 이후에 실행)
 (function() {
-  const t = location.hash === '#soul' ? 'soul' : 'refresh';
+  const h = location.hash.slice(1);
+  let t = 'refresh';
+  if (h === 'soul' || h === 'pact-gear' || h === 'pact-soul') t = h;
+  else if (h === 'pact') t = 'pact-gear'; // 이전 해시 호환
   switchTab(t);
 })();
 
@@ -541,6 +798,7 @@ async function doRefresh() {
 }
 
 $('name').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+document.getElementById('pactAdventure').addEventListener('keydown', e => { if(e.key==='Enter') pactRegister(); });
 $('name').focus();
 
 // ════════════════════════════════════

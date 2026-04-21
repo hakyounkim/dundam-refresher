@@ -1,5 +1,13 @@
 {
   "name": "dundam-refresher",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrate": "node scripts/migrate.mjs",
+    "probe:timeline": "node scripts/probe-timeline.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  }
 }
