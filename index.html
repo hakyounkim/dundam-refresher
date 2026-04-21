@@ -35,6 +35,7 @@
   }
 
   *{margin:0;padding:0;box-sizing:border-box}
+  html{scrollbar-gutter:stable;overflow-y:scroll}
   body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}
   .container{max-width:680px;margin:0 auto;padding:32px 20px}
 
@@ -110,8 +111,15 @@
   .info-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .info-detail{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  .rank{font-size:11px;color:#ff6b6b;text-align:right;flex-shrink:0;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank{font-size:11px;color:#ff6b6b;text-align:right;flex-shrink:0;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:flex-end;gap:4px}
   .rank.buff{color:#66bbff}
+  .rank .prev{color:var(--text3);font-size:11px;opacity:.75}
+  .rank .arrow{color:var(--text4);font-size:10px}
+  .rank .cur{font-weight:700}
+  .rank .diff{font-size:11px;font-weight:700}
+  .rank .diff.up{color:#4caf50}
+  .rank .diff.down{color:#f44336}
+  .rank .diff.same{color:var(--text3)}
 
   .status{font-size:11px;flex-shrink:0;width:20px;text-align:center}
   .status.s-load{color:#ffa36b}
@@ -126,11 +134,15 @@
   .log .l-info{color:#ffa36b}
 
   /* ── 소울 계산기 ── */
+  .soul-header-row{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .soul-header-row h1{flex:1;min-width:0}
   .soul-meta{display:flex;align-items:center;gap:10px;color:var(--text6);font-size:12px;margin-bottom:20px}
   .soul-ts{color:var(--text2)}
-  .soul-refresh{background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;transition:color .2s}
-  .soul-refresh:hover{color:#a78bfa}
+  .soul-refresh{flex-shrink:0;background:linear-gradient(135deg,#a78bfa,#60a5fa);border:none;color:#fff;cursor:pointer;font-size:22px;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:opacity .2s;box-shadow:0 2px 8px var(--shadow)}
+  .soul-refresh > span{display:inline-block;transition:transform .4s}
+  .soul-refresh:hover > span{transform:rotate(180deg)}
   .soul-refresh:disabled{opacity:.4;cursor:not-allowed}
+  .soul-refresh:disabled > span{transform:none}
 
   .section{margin-bottom:28px}
   .section-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.06em;margin-bottom:10px;padding-left:2px}
@@ -170,13 +182,19 @@
   .bid-limit{color:#60a5fa;font-weight:700}
   .bid-next{color:#f87171;text-align:right}
   .bid-meta{font-size:11px;color:var(--text4);text-align:right}
-  .bid-forbidden{display:flex;align-items:center;gap:5px;grid-column:2/5;justify-content:flex-end;color:#f87171;font-size:11px;font-weight:700}
+  .bid-forbidden{display:flex;align-items:center;gap:5px;grid-column:3 / -1;justify-content:flex-end;color:#f87171;font-size:11px;font-weight:700}
   .bid-forbidden::before{content:'⛔';font-size:12px}
 
   .s-loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
   .s-spin{display:inline-block;animation:spin 1s linear infinite;font-size:20px;margin-bottom:8px}
   @keyframes spin{to{transform:rotate(360deg)}}
   .error-msg{background:var(--error-bg);border:1px solid var(--error-border);border-radius:8px;padding:12px 16px;color:#f87171;font-size:12px;text-align:center}
+
+  /* ── 토스트 ── */
+  .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-12px);background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 28px;font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:14px;box-shadow:0 6px 24px var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast .t-spin{display:inline-block;animation:spin 1s linear infinite;font-size:20px}
+  .soul-app.refreshing{opacity:.6;transition:opacity .2s}
 
   /* ── 푸터 ── */
   .footer{text-align:center;margin-top:48px;color:var(--text5);font-size:11px}
@@ -196,7 +214,7 @@
     .avatar{width:32px;height:32px}
     .info-name{font-size:12px}
     .rank{max-width:90px;font-size:10px}
-    .bid-row{grid-template-columns:1fr 1fr;gap:4px 8px}
+    .bid-row{grid-template-columns:1.3fr 1fr 1fr;gap:4px 8px}
     .bid-row.hdr div:nth-child(4),.bid-row div:nth-child(4){display:none}
   }
 </style>
@@ -258,17 +276,21 @@
   ══════════════════════════════════ -->
   <div id="pane-soul" style="display:none">
     <div class="pane-header">
-      <h1 class="h-soul">💎 종말의 계시 환산기</h1>
+      <div class="soul-header-row">
+        <h1 class="h-soul">💎 종말의 계시 환산기</h1>
+        <button class="soul-refresh" id="soulRefreshBtn" onclick="soulLoad()" title="새로고침"><span>↺</span></button>
+      </div>
       <div class="soul-meta">
         <span class="soul-ts" id="soulTs">불러오는 중...</span>
-        <button class="soul-refresh" id="soulRefreshBtn" onclick="soulLoad()" title="새로고침">↺</button>
       </div>
     </div>
 
-    <div id="soulApp">
+    <div id="soulApp" class="soul-app">
       <div class="s-loading"><div class="s-spin">⏳</div><div>데이터 불러오는 중...</div></div>
     </div>
   </div>
+
+  <div class="toast" id="toast"><span class="t-spin">⏳</span><span id="toastMsg">불러오는 중...</span></div>
 
   <div class="footer">
     던파 유틸 · <a href="https://dundam.xyz" target="_blank">dundam.xyz</a> 비공식
@@ -408,13 +430,35 @@ async function doSearch() {
   $('searchBtn').textContent = '검색';
 }
 
+function parseRankNum(v) {
+  if (v == null) return NaN;
+  const s = String(v).replace(/[^\d.]/g,'');
+  return s ? parseFloat(s) : NaN;
+}
+function renderRank(label, prev, cur) {
+  const curStr = cur ? `${label}${cur}` : '';
+  if (prev == null || prev === '') return curStr || '-';
+  if (prev === cur) return `${curStr}<span class="diff same">=</span>`;
+  const p = parseRankNum(prev), c = parseRankNum(cur);
+  let cls = 'same', icon = '≠';
+  if (!isNaN(p) && !isNaN(c)) {
+    if (c > p) { cls = 'up'; icon = '▲'; }
+    else if (c < p) { cls = 'down'; icon = '▼'; }
+    else { icon = '='; }
+  }
+  return `<span class="prev">${label}${prev}</span><span class="arrow">→</span><span class="cur">${curStr}</span><span class="diff ${cls}">${icon}</span>`;
+}
+
 function render() {
   $('list').innerHTML = chars.map((c, i) => {
     const on = selected.has(i);
     const cls = ['char', on?'on':'', c._status==='loading'?'loading':'', c._status==='done'?'done':'', c._status==='error'?'error':''].filter(Boolean).join(' ');
     const statusHtml = {loading:'<div class="status s-load">···</div>',done:'<div class="status s-done">✓</div>',error:'<div class="status s-err">✗</div>'}[c._status]||'<div class="status"></div>';
     const isBuff = !!c.buffScore;
-    const rankText = isBuff ? `버프 ${c.buffScore}` : (c.ozma || '');
+    const curVal = isBuff ? c.buffScore : c.ozma;
+    const prevVal = isBuff ? c._prevBuffScore : c._prevOzma;
+    const label = isBuff ? '버프 ' : '';
+    const rankHtml = renderRank(label, prevVal, curVal);
     return `<div class="${cls}" onclick="toggle(${i})">
       <div class="chk">${on?'✓':''}</div>
       <div class="avatar"><img src="${c.avatarUrl}" onerror="imgErr(this)"></div>
@@ -422,7 +466,7 @@ function render() {
         <div class="info-name">${c.name}</div>
         <div class="info-detail">${c.job} · 명성 ${c.fame.toLocaleString()}${c.cri?' · 크리 '+c.cri+'%':''}${c._refreshTime!=null?' · '+c._refreshTime+'분 전 갱신':''}</div>
       </div>
-      <div class="rank${isBuff?' buff':''}">${rankText}</div>
+      <div class="rank${isBuff?' buff':''}">${rankHtml}</div>
       ${statusHtml}
     </div>`;
   }).join('');
@@ -474,6 +518,9 @@ async function doRefresh() {
   try {
     const prevStatus = Object.fromEntries(chars.map(c => [c.key, c._status]));
     const prevRefreshTime = Object.fromEntries(chars.map(c => [c.key, c._refreshTime]));
+    const prevOzma = Object.fromEntries(chars.map(c => [c.key, c.ozma]));
+    const prevBuff = Object.fromEntries(chars.map(c => [c.key, c.buffScore]));
+    const refreshed = new Set(indices.filter(j => chars[j]._status === 'done').map(j => chars[j].key));
     const res = await fetch(`/api/search?server=adven&name=${encodeURIComponent($('name').value.trim())}`);
     const data = await res.json();
     if (!data.error && data.characters?.length) {
@@ -481,7 +528,9 @@ async function doRefresh() {
         ...c,
         avatarUrl: `https://img-api.neople.co.kr/df/servers/${c.server}/characters/${c.key}?zoom=1`,
         _status: prevStatus[c.key] || 'idle',
-        _refreshTime: prevRefreshTime[c.key] ?? null
+        _refreshTime: prevRefreshTime[c.key] ?? null,
+        _prevOzma: refreshed.has(c.key) ? prevOzma[c.key] : null,
+        _prevBuffScore: refreshed.has(c.key) ? prevBuff[c.key] : null
       }));
       render();
       log('수치 업데이트 완료', 'info');
@@ -568,39 +617,59 @@ function renderBids(best) {
     const limit    = Math.floor(minVal / 0.775);
     const safeBid  = lastSafeBid(limit);
     const ok       = safeBid != null;
-    const nextBid  = ok ? Math.round(safeBid * 1.05) : null;
     const payback  = ok ? Math.floor(safeBid * 0.225) : null;
     const net      = ok ? safeBid - payback : null;
-    return { ...item, minVal, limit, safeBid, nextBid, payback, net, ok };
+    return { ...item, minVal, limit, safeBid, payback, net, ok };
   });
   return `
     <div class="section">
       <div class="section-title">주화 경매 입찰 한계가 계산</div>
       <div class="basis-bar">
         기준: <span>${best.name}</span> — 계시 1개당 <span>${fmt(bestCost)}G</span>
-        <span class="basis-hint">낙찰금 22.5% 환급 · 1M 시작 5% 상승</span>
+        <span class="basis-hint">낙찰금 22.5% 환급 · 100만G 시작 5% 상승</span>
       </div>
       <div class="bid-list">
-        <div class="bid-row hdr"><div>품목</div><div class="bid-val">마지막 입찰가</div><div class="bid-val">다음 단계</div><div class="bid-val">분배금 / 실지출</div></div>
+        <div class="bid-row hdr"><div>품목</div><div class="bid-val">가치</div><div class="bid-val">마지막 입찰가</div><div class="bid-val">분배금 / 실지출</div></div>
         ${rows.map(r => `
         <div class="bid-row${r.ok?'':' forbidden'}">
           <div class="bid-item-name${r.ok?'':' forbidden'}">${r.name}</div>
+          <div class="bid-val bid-meta">${fmt(r.minVal)}G</div>
           ${r.ok
             ? `<div class="bid-val bid-limit">${fmt(r.safeBid)}G</div>
-               <div class="bid-val bid-next">${fmt(r.nextBid)}G ✗</div>
                <div class="bid-val bid-meta">+${fmt(r.payback)} / ${fmt(r.net)}G</div>`
-            : `<div class="bid-forbidden">입찰 금지 (가치 ${fmt(r.minVal)}G)</div>`}
+            : `<div class="bid-forbidden">입찰 금지</div>`}
         </div>`).join('')}
       </div>
     </div>`;
 }
 
+function showToast(msg) {
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toast').classList.add('show');
+}
+function hideToast() {
+  document.getElementById('toast').classList.remove('show');
+}
+function resetSoulPrices(app) {
+  app.querySelectorAll('.soul-price, .detail-value, .bid-limit, .bid-next, .bid-meta, .basis-bar span').forEach(el => {
+    el.textContent = '-';
+  });
+}
+
 async function soulLoad() {
   const btn = document.getElementById('soulRefreshBtn');
   const app = document.getElementById('soulApp');
+  const isRefresh = soulLoaded;
   btn.disabled = true;
-  document.getElementById('soulTs').textContent = '불러오는 중...';
-  app.innerHTML = '<div class="s-loading"><div class="s-spin">⏳</div><div>데이터 불러오는 중...</div></div>';
+
+  if (isRefresh) {
+    resetSoulPrices(app);
+    app.classList.add('refreshing');
+    showToast('새로고침 중...');
+  } else {
+    document.getElementById('soulTs').textContent = '불러오는 중...';
+    app.innerHTML = '<div class="s-loading"><div class="s-spin">⏳</div><div>데이터 불러오는 중...</div></div>';
+  }
 
   try {
     const res  = await fetch('/api/soul');
@@ -613,6 +682,8 @@ async function soulLoad() {
     app.innerHTML = `<div class="error-msg">데이터 로드 실패: ${e.message}</div>`;
     document.getElementById('soulTs').textContent = '오류';
   }
+  app.classList.remove('refreshing');
+  hideToast();
   btn.disabled = false;
 }
 </script>
