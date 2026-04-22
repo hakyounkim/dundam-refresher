@@ -317,6 +317,132 @@
     .bid-row{grid-template-columns:1.3fr 1fr 1fr;gap:4px 8px}
     .bid-row.hdr div:nth-child(4),.bid-row div:nth-child(4){display:none}
   }
+
+  /* ══════════════════════════════════════════════
+     PC (≥1024px) — 사이드바 + 메인 레이아웃
+     ══════════════════════════════════════════════ */
+  @media(min-width:1024px){
+    html{overflow-y:auto}
+    body{min-height:100vh}
+
+    /* 컨테이너: 사이드바 + 메인 2컬럼 */
+    .container{
+      max-width:1280px;
+      padding:28px 32px;
+      display:grid;
+      grid-template-columns:220px 1fr;
+      gap:32px;
+      align-items:start;
+    }
+
+    /* 탭바를 세로 사이드바로 전환 */
+    .tab-bar{
+      position:sticky;top:28px;
+      display:flex;flex-direction:column;gap:14px;
+      margin-bottom:0;align-items:stretch;
+    }
+    .tab-bar::before{
+      content:'⚡ 던파 유틸';
+      font-size:17px;font-weight:900;
+      background:linear-gradient(135deg,#ff6b6b,#a78bfa);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      padding:4px 8px 8px;border-bottom:1px solid var(--border);
+      margin-bottom:4px;letter-spacing:.01em;
+    }
+    .tabs{
+      flex:initial;flex-direction:column;gap:2px;
+      background:transparent;border:none;padding:0;
+    }
+    .tab{
+      flex:initial;text-align:left;
+      padding:11px 14px;font-size:14px;border-radius:8px;
+    }
+    .tab.active{background:var(--tab-active);box-shadow:inset 3px 0 0 #ff6b6b, 0 1px 3px var(--shadow)}
+    .theme-btn{
+      align-self:flex-start;width:40px;height:40px;
+      margin-top:auto;
+    }
+
+    /* 메인 영역 — 모든 pane이 여기에 들어감 */
+    #pane-refresh, #pane-soul, #pane-history{
+      min-width:0;
+    }
+
+    /* 헤더 여유 */
+    .pane-header h1{font-size:32px}
+    .pane-header .sub{font-size:14px}
+
+    /* 장비 페이퍼돌: 5열 좌6/캐릭카드/우6 구조 (모달 안) */
+    .cm-body .eq-layout{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      grid-template-rows:repeat(6, auto);
+      grid-template-areas:
+        "a1 a1 cc e1 e1"
+        "a2 a2 cc e2 e2"
+        "a3 a3 cc e3 e3"
+        "a4 a4 cc e4 e4"
+        "a5 a5 cc e5 e5"
+        "a6 a6 cc e6 e6";
+      gap:8px;
+    }
+    .cm-body .eq-layout .eq-slot{min-height:108px}
+    /* 좌측(방어구 6) 슬롯 그리드 배치: 머리어깨/상의/하의/벨트/신발/보조장비 */
+    .cm-body .eq-layout > .eq-slot[data-slot="SHOULDER"]{grid-area:a1}
+    .cm-body .eq-layout > .eq-slot[data-slot="JACKET"]  {grid-area:a2}
+    .cm-body .eq-layout > .eq-slot[data-slot="PANTS"]   {grid-area:a3}
+    .cm-body .eq-layout > .eq-slot[data-slot="WAIST"]   {grid-area:a4}
+    .cm-body .eq-layout > .eq-slot[data-slot="SHOES"]   {grid-area:a5}
+    .cm-body .eq-layout > .eq-slot[data-slot="SUPPORT"] {grid-area:a6}
+    /* 우측(액세/무기 6): 목걸이/팔찌/반지/귀걸이/마법석/무기 */
+    .cm-body .eq-layout > .eq-slot[data-slot="AMULET"]     {grid-area:e1}
+    .cm-body .eq-layout > .eq-slot[data-slot="WRIST"]      {grid-area:e2}
+    .cm-body .eq-layout > .eq-slot[data-slot="RING"]       {grid-area:e3}
+    .cm-body .eq-layout > .eq-slot[data-slot="EARRING"]    {grid-area:e4}
+    .cm-body .eq-layout > .eq-slot[data-slot="MAGIC_STONE"]{grid-area:e5}
+    .cm-body .eq-layout > .eq-slot[data-slot="WEAPON"]     {grid-area:e6}
+    /* 중앙 캐릭 카드 */
+    .cm-body .eq-layout .eq-center-card{
+      grid-area:cc;
+      background:linear-gradient(160deg,var(--card),var(--tab-bg));
+      border:1px solid var(--border);border-radius:12px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:10px;padding:18px 12px;text-align:center;min-height:100%;
+    }
+    .cm-body .eq-layout .eq-center-card .ecc-avatar{
+      width:96px;height:96px;border-radius:12px;background:var(--avatar-bg);
+      overflow:hidden;display:flex;align-items:center;justify-content:center;
+      border:1px solid var(--border);
+    }
+    .cm-body .eq-layout .eq-center-card .ecc-avatar img{width:100%;height:100%;object-fit:cover}
+    .cm-body .eq-layout .eq-center-card .ecc-name{font-size:15px;font-weight:900;line-height:1.25;word-break:keep-all}
+    .cm-body .eq-layout .eq-center-card .ecc-job{font-size:11px;color:var(--text3);font-weight:700}
+    .cm-body .eq-layout .eq-center-card .ecc-fame{
+      font-size:18px;font-weight:900;
+      background:linear-gradient(135deg,#60a5fa,#a78bfa);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      letter-spacing:-.01em;
+    }
+    .cm-body .eq-layout .eq-center-card .ecc-fame-lbl{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.06em;margin-top:-6px}
+
+    /* 모달 PC에서 확장 */
+    .char-modal{width:min(1040px, calc(100vw - 48px))}
+
+    /* 서약 그리드 slight 확장 */
+    .cm-body .pact-grid{max-width:520px;margin:0 auto;gap:8px}
+    .cm-body .pact-slot{min-height:108px}
+    .cm-body .pact-slot .ps-img{width:48px;height:48px}
+
+    /* 모바일 전용 gear placeholder 3열 제한은 해제 — 4열 유지 */
+    .gear-grid{grid-template-columns:repeat(6,1fr)}
+
+    /* 기록 탭 캐릭 그리드: 2열로 배치 */
+    #pactCharList{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    #pactCharList > *{margin-bottom:0 !important}
+
+    /* 갱신기 char-list도 2열 */
+    #list{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+  }
 </style>
 </head>
 <body>
@@ -929,7 +1055,7 @@ function renderCharGear(pane, detail) {
     const lbl = EQ_SLOT_LBL[slot];
     const e = bySlot[slot];
     if (!e) {
-      return `<div class="eq-slot empty">
+      return `<div class="eq-slot empty" data-slot="${slot}">
         <div class="eq-img"><span style="font-size:18px;opacity:.3">·</span></div>
         <div class="eq-slot-lbl">${lbl}</div>
         <div class="eq-meta">미장착</div>
@@ -940,7 +1066,7 @@ function renderCharGear(pane, detail) {
     const img = e.itemId
       ? `<img src="https://img-api.neople.co.kr/df/items/${encodeURIComponent(e.itemId)}" alt="" loading="lazy" onerror="this.style.display='none'">`
       : '';
-    return `<div class="eq-slot r-${escapeHtml(e.itemRarity ?? '')}">
+    return `<div class="eq-slot r-${escapeHtml(e.itemRarity ?? '')}" data-slot="${slot}">
       <div class="eq-img">${img}</div>
       <div class="eq-slot-lbl">${lbl} ${enchant}</div>
       <div class="eq-name">${escapeHtml(e.itemName ?? '')}</div>
@@ -948,7 +1074,22 @@ function renderCharGear(pane, detail) {
     </div>`;
   };
 
-  pane.innerHTML = `<div class="eq-layout">${EQ_SLOT_ORDER.map(slotHtml).join('')}</div>`;
+  // PC(≥1024px)에서만 중앙 캐릭 카드 주입. CSS grid-area로 위치가 결정됨.
+  const c = CHAR_MODAL.char || {};
+  const b = detail?.basic || {};
+  const svKr = PACT_SERVER_KR[c.serverId] || c.serverId || '';
+  const avatar = c.characterId
+    ? `<img src="https://img-api.neople.co.kr/df/servers/${encodeURIComponent(c.serverId)}/characters/${encodeURIComponent(c.characterId)}?zoom=1" alt="" loading="lazy" onerror="this.style.display='none'">`
+    : '';
+  const centerCard = `<div class="eq-center-card">
+    <div class="ecc-avatar">${avatar}</div>
+    <div class="ecc-name">${escapeHtml(c.characterName || '')}</div>
+    <div class="ecc-job">${escapeHtml(c.jobGrowName || b.jobGrowName || '')} · ${escapeHtml(svKr)}</div>
+    <div class="ecc-fame">${Number(b.fame ?? c.fame ?? 0).toLocaleString('ko-KR')}</div>
+    <div class="ecc-fame-lbl">명성</div>
+  </div>`;
+
+  pane.innerHTML = `<div class="eq-layout">${EQ_SLOT_ORDER.map(slotHtml).join('')}${centerCard}</div>`;
 }
 
 function renderCharSummary(pane, detail) {
