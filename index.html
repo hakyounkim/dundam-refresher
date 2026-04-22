@@ -54,6 +54,106 @@
   .pane-header .sub{color:var(--text2);font-size:13px}
   .h-refresh{background:linear-gradient(135deg,#ff6b6b,#ffa36b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
   .h-soul{background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .h-history{background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+  /* ── 기록: 서브탭 ── */
+  .subtabs{display:flex;gap:2px;background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:18px}
+  .subtab{flex:1;font-family:inherit;font-size:12px;font-weight:700;background:none;border:none;color:var(--tab-inactive);padding:7px 0;border-radius:6px;cursor:pointer;transition:all .15s}
+  .subtab:hover{color:var(--tab-inactive-h)}
+  .subtab.active{background:var(--tab-active);color:var(--text);box-shadow:0 1px 2px var(--shadow)}
+
+  /* ── 기록: 장비 탭 (개발 예정) ── */
+  .gear-ph{padding:28px 20px;background:var(--card);border:1px solid var(--border);border-radius:12px;text-align:center}
+  .gear-ph-title{font-size:15px;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .gear-ph-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
+  .gear-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:18px}
+  .gear-slot{aspect-ratio:1;background:var(--tab-bg);border:1px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text5);font-size:10px;font-weight:700;transition:all .4s ease-in-out;animation:gearPulse 3.2s ease-in-out infinite}
+  .gear-slot:nth-child(even){animation-delay:.4s}
+  .gear-slot:nth-child(3n){animation-delay:.8s}
+  .gear-slot .gear-emoji{font-size:20px;opacity:.35;filter:grayscale(.3)}
+  .gear-slot .gear-lbl{opacity:.6}
+  @keyframes gearPulse{0%,100%{border-color:var(--border);opacity:.7}50%{border-color:#a78bfa55;opacity:1}}
+  .gear-ph-footer{font-size:11px;color:var(--text4);background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:inline-flex;align-items:center;gap:8px}
+  .gear-ph-footer .blink{animation:blink 1.4s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(max-width:480px){
+    .gear-grid{grid-template-columns:repeat(3,1fr)}
+  }
+
+  /* ── 기록: 카테고리 칩 ── */
+  .cat-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:6px;vertical-align:middle;letter-spacing:.02em}
+  .cat-chip.pact{background:#a78bfa22;border:1px solid #a78bfa55;color:#a78bfa}
+  .cat-chip.soul{background:#60a5fa22;border:1px solid #60a5fa55;color:#60a5fa}
+
+  /* ── 캐릭 모달 ── */
+  body.modal-open{overflow:hidden}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:90;opacity:0;transition:opacity .2s}
+  .modal-backdrop.show{opacity:1}
+  .char-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-48%);width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 48px);background:var(--bg);border:1px solid var(--border);border-radius:14px;z-index:100;box-shadow:0 16px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;opacity:0;transition:opacity .18s,transform .18s}
+  .char-modal.show{opacity:1;transform:translate(-50%,-50%)}
+  .cm-head{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border)}
+  .cm-avatar{width:60px;height:60px;border-radius:10px;background:var(--avatar-bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .cm-avatar img{width:100%;height:100%;object-fit:cover}
+  .cm-head-info{flex:1;min-width:0}
+  .cm-name{font-size:18px;font-weight:900;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cm-server{font-size:11px;font-weight:500;color:var(--text3);background:var(--tab-bg);border:1px solid var(--border);padding:2px 8px;border-radius:6px}
+  .cm-meta{font-size:12px;color:var(--text2);margin-top:3px}
+  .cm-close{flex-shrink:0;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .cm-close:hover{color:var(--text);border-color:var(--text5)}
+  .cm-subtabs{display:flex;gap:2px;background:var(--tab-bg);padding:3px;margin:12px 14px 0 14px;border-radius:8px;border:1px solid var(--border)}
+  .cm-subtab{flex:1;background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--tab-inactive);padding:7px 0;border-radius:6px;cursor:pointer;transition:all .15s}
+  .cm-subtab:hover{color:var(--tab-inactive-h)}
+  .cm-subtab.active{background:var(--tab-active);color:var(--text);box-shadow:0 1px 2px var(--shadow)}
+  .cm-body{flex:1;overflow-y:auto;padding:16px 18px}
+  .cm-loading{text-align:center;padding:40px 0;color:var(--text3);font-size:13px}
+  .cm-err{background:var(--error-bg);border:1px solid var(--error-border);color:#f87171;padding:12px;border-radius:8px;font-size:12px}
+
+  /* 장비 페이퍼돌 (3열 × 4행) */
+  .eq-layout{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .eq-slot{position:relative;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:96px;text-align:center;overflow:hidden}
+  .eq-slot.empty{opacity:.55;border-style:dashed}
+  .eq-img{width:44px;height:44px;border-radius:6px;background:var(--avatar-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+  .eq-img img{max-width:100%;max-height:100%;object-fit:contain}
+  .eq-slot-lbl{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:5px;width:100%}
+  .eq-name{font-size:11px;font-weight:700;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all}
+  .eq-meta{font-size:10px;color:var(--text4);line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .eq-enchant{color:#60a5fa;font-weight:800;font-size:11px}
+  .eq-amp{color:#ff8e53;font-weight:700}
+  .eq-slot.r-에픽{border-color:#ffb30055}
+  .eq-slot.r-에픽 .eq-name{color:#ffb300}
+  .eq-slot.r-태초{border-color:#4caf5077;background:linear-gradient(135deg,var(--card),#4caf5014)}
+  .eq-slot.r-태초 .eq-name{color:#4caf50}
+  .eq-slot.r-유니크 .eq-name{color:#c084fc}
+  .eq-slot.r-레어 .eq-name{color:#60a5fa}
+  .eq-slot.r-언커먼 .eq-name{color:#34d399}
+  @media(max-width:420px){ .eq-slot{min-height:86px} }
+
+  /* 서약 3×4: 중앙=서약 · 주변 8=에픽 결정 · 아래 3=태초 가능 결정 */
+  .pact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .pact-slot{position:relative;aspect-ratio:1;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px;text-align:center}
+  .pact-slot.empty{opacity:.55;border-style:dashed}
+  .pact-slot .ps-img{width:40px;height:40px;border-radius:6px;background:var(--avatar-bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .pact-slot .ps-img img{max-width:100%;max-height:100%;object-fit:contain}
+  .pact-slot .ps-lbl{font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.04em}
+  .pact-slot .ps-name{font-size:10px;font-weight:700;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all;max-width:100%}
+  .pact-slot.pact-main{border-color:#a78bfa99;background:linear-gradient(135deg,var(--card),#a78bfa18);box-shadow:0 0 14px #a78bfa30 inset}
+  .pact-slot.pact-main .ps-lbl{color:#a78bfa}
+  .pact-slot.taecho-ok{border-color:#4caf5077;background:linear-gradient(135deg,var(--card),#4caf5012)}
+  .pact-slot.taecho-ok .ps-lbl{color:#4caf50}
+  .pact-slot.taecho-ok::after{content:'태초';position:absolute;top:3px;right:4px;font-size:8px;font-weight:800;color:#4caf50;background:#4caf5015;border:1px solid #4caf5055;padding:1px 4px;border-radius:3px;letter-spacing:.05em}
+  .pact-legend{display:flex;justify-content:center;gap:16px;margin-top:10px;font-size:10px;color:var(--text3)}
+  .pact-legend .lg{display:flex;align-items:center;gap:4px}
+  .pact-legend .lg::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid var(--border)}
+  .pact-legend .lg.main::before{border-color:#a78bfa99;background:#a78bfa18}
+  .pact-legend .lg.taecho::before{border-color:#4caf5077;background:#4caf5012}
+
+  /* 요약 탭 */
+  .cm-summary{display:flex;flex-direction:column;gap:14px}
+  .cm-stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+  .cm-stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+  .cm-stat-lbl{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.04em}
+  .cm-stat-val{font-size:16px;font-weight:900;margin-top:2px}
+  .cm-stat.h .cm-stat-val{background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 
   /* ── 갱신기: 검색 ── */
   .search{display:flex;gap:8px;margin-bottom:8px}
@@ -225,10 +325,9 @@
   <!-- ── 탭 네비 ── -->
   <div class="tab-bar">
     <div class="tabs">
-      <button class="tab" id="tab-refresh"    onclick="switchTab('refresh')">⚡ 갱신기</button>
-      <button class="tab" id="tab-soul"       onclick="switchTab('soul')">💎 계시 환산기</button>
-      <button class="tab" id="tab-pact-gear"  onclick="switchTab('pact-gear')">⚔️ 서약 장비</button>
-      <button class="tab" id="tab-pact-soul"  onclick="switchTab('pact-soul')">💠 서약 결정</button>
+      <button class="tab" id="tab-refresh" onclick="switchTab('refresh')">⚡ 갱신기</button>
+      <button class="tab" id="tab-history" onclick="switchTab('history')">📜 기록</button>
+      <button class="tab" id="tab-soul"    onclick="switchTab('soul')">💎 계시 환산기</button>
     </div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="테마 변경">🌙</button>
   </div>
@@ -293,14 +392,15 @@
   </div>
 
   <!-- ══════════════════════════════════
-       TAB 3/4: 서약 획득 내역 (장비 / 결정 두 탭이 공유)
+       TAB 3: 기록 (장비 / 서약 서브탭)
   ══════════════════════════════════ -->
-  <div id="pane-pact" style="display:none">
+  <div id="pane-history" style="display:none">
     <div class="pane-header">
-      <h1 class="h-refresh" id="pactHeader">⚔️ 서약 장비 획득 내역</h1>
-      <p class="sub">모험단 등록 → 캐릭별 갱신 → 에픽/태초 타임라인</p>
+      <h1 class="h-history">📜 기록</h1>
+      <p class="sub">장비와 서약 파밍 내역을 한눈에</p>
     </div>
 
+    <!-- ── 공유: 모험단 등록/갱신 ── -->
     <div class="search">
       <input type="text" id="pactAdventure" placeholder="모험단명" maxlength="20">
       <button onclick="pactRegister()">등록/갱신</button>
@@ -311,34 +411,106 @@
         <button onclick="pactSyncAll()">전체 캐릭 갱신</button>
         <span class="ctrl-count" id="pactCount"></span>
       </div>
-      <div>
-        <label style="font-size:12px">등급
-          <select id="pactRarity" onchange="pactLoadEvents()" style="padding:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px">
-            <option value="태초,에픽">태초+에픽</option>
-            <option value="태초">태초만</option>
-            <option value="에픽">에픽만</option>
-          </select>
-        </label>
-      </div>
     </div>
 
     <div class="progress" id="pactProgress"><div class="progress-fill" id="pactProgressFill"></div></div>
 
     <div id="pactCharList" class="char-list" style="margin-bottom:18px"></div>
 
-    <div id="pactStats" style="display:none;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-      <div style="font-weight:700;margin-bottom:8px">획득 통계</div>
-      <div id="pactStatsBody" style="font-size:13px;line-height:1.8"></div>
+    <!-- 서브탭 -->
+    <div class="subtabs">
+      <button class="subtab" id="subtab-gear" onclick="switchHistorySub('gear')">⚔️ 장비</button>
+      <button class="subtab" id="subtab-pact" onclick="switchHistorySub('pact')">🔮 서약</button>
     </div>
 
-    <div id="pactEvents" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-      <div class="empty" style="padding:30px;text-align:center">
-        <div class="emoji">🔮</div>
-        모험단을 등록하고 캐릭을 갱신하면 획득 내역이 여기 표시됩니다
+    <!-- ── 서브탭 1: 장비 (개발 예정) ── -->
+    <div id="subpane-gear" style="display:none">
+      <div class="gear-ph">
+        <div class="gear-ph-title">⚒️ 장비 파밍 기록</div>
+        <div class="gear-ph-sub">
+          태초/에픽 12부위 드랍이 이 자리에 채워질 예정입니다.<br>
+          지금은 대장장이가 화로를 달구는 중 …
+        </div>
+        <div class="gear-grid">
+          <div class="gear-slot"><span class="gear-emoji">🪖</span><span class="gear-lbl">머리어깨</span></div>
+          <div class="gear-slot"><span class="gear-emoji">👕</span><span class="gear-lbl">상의</span></div>
+          <div class="gear-slot"><span class="gear-emoji">👖</span><span class="gear-lbl">하의</span></div>
+          <div class="gear-slot"><span class="gear-emoji">🎗️</span><span class="gear-lbl">벨트</span></div>
+          <div class="gear-slot"><span class="gear-emoji">👟</span><span class="gear-lbl">신발</span></div>
+          <div class="gear-slot"><span class="gear-emoji">📿</span><span class="gear-lbl">목걸이</span></div>
+          <div class="gear-slot"><span class="gear-emoji">⌚</span><span class="gear-lbl">팔찌</span></div>
+          <div class="gear-slot"><span class="gear-emoji">💍</span><span class="gear-lbl">반지</span></div>
+          <div class="gear-slot"><span class="gear-emoji">🎧</span><span class="gear-lbl">귀걸이</span></div>
+          <div class="gear-slot"><span class="gear-emoji">✨</span><span class="gear-lbl">마법석</span></div>
+          <div class="gear-slot"><span class="gear-emoji">🎐</span><span class="gear-lbl">보조장비</span></div>
+          <div class="gear-slot"><span class="gear-emoji">⚔️</span><span class="gear-lbl">무기</span></div>
+        </div>
+        <div class="gear-ph-footer"><span class="blink">🚧</span> 개발 진행 중 · 곧 만나요 <span class="blink">🚧</span></div>
+      </div>
+    </div>
+
+    <!-- ── 서브탭 2: 서약 (기존 pact-gear + pact-soul 통합) ── -->
+    <div id="subpane-pact" style="display:none">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:12px">종류
+          <select id="pactCategory" onchange="pactRenderFiltered()" style="padding:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px">
+            <option value="pact,soul">전체</option>
+            <option value="pact">서약만</option>
+            <option value="soul">서약결정만</option>
+          </select>
+        </label>
+        <label style="font-size:12px">등급
+          <select id="pactRarity" onchange="pactRenderFiltered()" style="padding:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px">
+            <option value="태초,에픽">태초+에픽</option>
+            <option value="태초">태초만</option>
+            <option value="에픽">에픽만</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="pactStats" style="display:none;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+        <div style="font-weight:700;margin-bottom:8px">획득 통계</div>
+        <div id="pactStatsBody" style="font-size:13px;line-height:1.8"></div>
+      </div>
+
+      <div id="pactEvents" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <div class="empty" style="padding:30px;text-align:center">
+          <div class="emoji">🔮</div>
+          모험단을 등록하고 캐릭을 갱신하면 획득 내역이 여기 표시됩니다
+        </div>
       </div>
     </div>
 
     <div class="log" id="pactLog"></div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       캐릭터 상세 모달
+  ══════════════════════════════════ -->
+  <div class="modal-backdrop" id="charModalBackdrop" style="display:none" onclick="closeCharModal()"></div>
+  <div class="char-modal" id="charModal" style="display:none" role="dialog" aria-modal="true">
+    <div class="cm-head">
+      <div class="cm-avatar" id="cmAvatar">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:26px;height:26px;opacity:.4"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"/></svg>
+      </div>
+      <div class="cm-head-info">
+        <div class="cm-name"><span id="cmName"></span><span class="cm-server" id="cmServer"></span></div>
+        <div class="cm-meta" id="cmMeta"></div>
+      </div>
+      <button class="cm-close" onclick="closeCharModal()" aria-label="닫기">×</button>
+    </div>
+    <div class="cm-subtabs">
+      <button class="cm-subtab" id="cmtab-summary"  onclick="switchCharTab('summary')">📊 요약</button>
+      <button class="cm-subtab" id="cmtab-gear"     onclick="switchCharTab('gear')">⚔️ 장비</button>
+      <button class="cm-subtab" id="cmtab-pact"     onclick="switchCharTab('pact')">🔮 서약</button>
+      <button class="cm-subtab" id="cmtab-timeline" onclick="switchCharTab('timeline')">🕘 타임라인</button>
+    </div>
+    <div class="cm-body">
+      <div id="cmpane-summary"  style="display:none"></div>
+      <div id="cmpane-gear"     style="display:none"></div>
+      <div id="cmpane-pact"     style="display:none"></div>
+      <div id="cmpane-timeline" style="display:none"></div>
+    </div>
   </div>
 
   <div class="toast" id="toast"><span class="t-spin">⏳</span><span id="toastMsg">불러오는 중...</span></div>
@@ -371,21 +543,30 @@ function toggleTheme() {
 // ════════════════════════════════════
 //  탭 전환
 // ════════════════════════════════════
+const HISTORY_SUB_KEY = 'history_sub';
+let historySub = localStorage.getItem(HISTORY_SUB_KEY) || 'pact';
+
 function switchTab(t) {
-  const isPact = t === 'pact-gear' || t === 'pact-soul';
   document.getElementById('pane-refresh').style.display = t === 'refresh' ? '' : 'none';
   document.getElementById('pane-soul').style.display    = t === 'soul'    ? '' : 'none';
-  document.getElementById('pane-pact').style.display    = isPact          ? '' : 'none';
-  document.getElementById('tab-refresh').classList.toggle('active',   t === 'refresh');
-  document.getElementById('tab-soul').classList.toggle('active',      t === 'soul');
-  document.getElementById('tab-pact-gear').classList.toggle('active', t === 'pact-gear');
-  document.getElementById('tab-pact-soul').classList.toggle('active', t === 'pact-soul');
-  location.hash = t === 'refresh' ? '' : t;
+  document.getElementById('pane-history').style.display = t === 'history' ? '' : 'none';
+  document.getElementById('tab-refresh').classList.toggle('active', t === 'refresh');
+  document.getElementById('tab-soul').classList.toggle('active',    t === 'soul');
+  document.getElementById('tab-history').classList.toggle('active', t === 'history');
+  location.hash = t === 'refresh' ? '' : (t === 'history' ? `history/${historySub}` : t);
   if (t === 'soul' && !soulLoaded) soulLoad();
-  if (isPact) {
-    PACT_STATE.category = t === 'pact-soul' ? 'soul' : 'pact';
-    document.getElementById('pactHeader').textContent =
-      PACT_STATE.category === 'soul' ? '💠 서약 결정 획득 내역' : '⚔️ 서약 장비 획득 내역';
+  if (t === 'history') switchHistorySub(historySub, /*fromTab*/true);
+}
+
+function switchHistorySub(sub, fromTab) {
+  historySub = sub;
+  localStorage.setItem(HISTORY_SUB_KEY, sub);
+  document.getElementById('subpane-gear').style.display = sub === 'gear' ? '' : 'none';
+  document.getElementById('subpane-pact').style.display = sub === 'pact' ? '' : 'none';
+  document.getElementById('subtab-gear').classList.toggle('active', sub === 'gear');
+  document.getElementById('subtab-pact').classList.toggle('active', sub === 'pact');
+  if (!fromTab) location.hash = `history/${sub}`;
+  if (sub === 'pact') {
     pactRestore();
     pactLoadEvents();
   }
@@ -396,7 +577,7 @@ let soulLoaded = false;
 // ════════════════════════════════════
 //  TAB 3: 서약 내역
 // ════════════════════════════════════
-const PACT_STATE = { adventureName: null, characters: [], category: 'pact' };
+const PACT_STATE = { adventureName: null, characters: [], allRows: null };
 
 const PACT_SERVER_KR = {
   cain:'카인', diregie:'디레지에', siroco:'시로코', prey:'프레이',
@@ -464,12 +645,12 @@ function pactRenderCharList() {
   box.innerHTML = PACT_STATE.characters.map(c => {
     const svKr = PACT_SERVER_KR[c.serverId] || c.serverId || '';
     return `
-    <div class="char-row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+    <div class="char-row" onclick="openCharModalById('${c.characterId}')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--char-hover)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="flex:1">
         <div style="font-weight:700">${escapeHtml(c.characterName)} <span style="font-weight:400;font-size:11px;color:var(--muted)">[${escapeHtml(svKr)}]</span></div>
         <div style="font-size:11px;color:var(--muted)">${escapeHtml(c.jobGrowName || '')} · 명성 ${c.fame ?? '-'}</div>
       </div>
-      <button onclick="pactSyncOne('${c.characterId}', this)">갱신</button>
+      <button onclick="event.stopPropagation();pactSyncOne('${c.characterId}', this)">갱신</button>
     </div>`;
   }).join('');
 }
@@ -509,23 +690,43 @@ async function pactSyncAll() {
 
 async function pactLoadEvents() {
   if (!PACT_STATE.adventureName) return;
-  const rarity   = document.getElementById('pactRarity').value;
-  const category = PACT_STATE.category || 'pact';
+  // 항상 전체 범위로 한 번만 조회. 필터는 클라이언트에서 처리.
   const qs = new URLSearchParams({
     adventureName: PACT_STATE.adventureName,
-    rarity, category,
+    rarity: '태초,에픽',
+    category: 'pact,soul',
   });
   const res = await fetch(`/api/events?${qs}`);
   const json = await res.json();
   if (!res.ok) return pactLog(`✗ 조회 실패: ${json.error}`);
-  pactRenderEvents(json);
+  PACT_STATE.allRows = json.rows;
+  pactRenderFiltered();
+}
+
+const PATH_LABEL = {550:'드랍',551:'레이드',552:'항아리',554:'제작',557:'카드'};
+function pathLabelCode(code) { return PATH_LABEL[code] || `code ${code}`; }
+
+function pactRenderFiltered() {
+  if (!PACT_STATE.allRows) return;
+  const rarities   = document.getElementById('pactRarity').value.split(',');
+  const categories = document.getElementById('pactCategory').value.split(',');
+  const rows = PACT_STATE.allRows.filter(r =>
+    rarities.includes(r.item_rarity) && categories.includes(r.item_category)
+  );
+  const byChannel = {};
+  const byCode = {};
+  for (const r of rows) {
+    if (r.channel_name) byChannel[r.channel_name] = (byChannel[r.channel_name] ?? 0) + 1;
+    const label = pathLabelCode(r.event_code);
+    byCode[label] = (byCode[label] ?? 0) + 1;
+  }
+  pactRenderEvents({ rows, stats: { byChannel, byCode } });
 }
 
 function pactRenderEvents({ rows, stats }) {
   const box = document.getElementById('pactEvents');
-  const catLabel = PACT_STATE.category === 'soul' ? '서약 결정' : '서약 장비';
   if (!rows.length) {
-    box.innerHTML = `<div class="empty" style="padding:30px;text-align:center"><div class="emoji">📭</div>조건에 맞는 ${catLabel} 획득 내역이 없습니다</div>`;
+    box.innerHTML = `<div class="empty" style="padding:30px;text-align:center"><div class="emoji">📭</div>조건에 맞는 획득 내역이 없습니다</div>`;
     document.getElementById('pactStats').style.display = 'none';
     return;
   }
@@ -541,7 +742,7 @@ function pactRenderEvents({ rows, stats }) {
   `;
   statsBox.style.display = '';
 
-  const pathLabel = code => ({550:'드랍',551:'레이드',552:'항아리',554:'제작',557:'카드'}[code] || `code ${code}`);
+  const pathLabel = pathLabelCode;
   const rarityColor = r => r === '태초' ? '#4caf50' : r === '에픽' ? '#ffb300' : '#888';
   const cell = 'padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;word-break:keep-all';
   const html = [`
@@ -561,6 +762,9 @@ function pactRenderEvents({ rows, stats }) {
       </thead>
       <tbody>
   `];
+  const catChip = c => c === 'soul'
+    ? '<span class="cat-chip soul">결정</span>'
+    : '<span class="cat-chip pact">서약</span>';
   for (const r of rows) {
     const when = new Date(r.occurred_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
     const svKr = PACT_SERVER_KR[r.server_id] || r.server_id || '-';
@@ -569,7 +773,7 @@ function pactRenderEvents({ rows, stats }) {
         <td style="${cell};color:var(--muted)">${when}</td>
         <td style="${cell};font-weight:600">${escapeHtml(r.character_name)}</td>
         <td style="${cell};color:var(--muted)">${escapeHtml(svKr)}</td>
-        <td style="${cell};white-space:normal">${escapeHtml(r.item_name)}</td>
+        <td style="${cell};white-space:normal">${catChip(r.item_category)}${escapeHtml(r.item_name)}</td>
         <td style="${cell};color:${rarityColor(r.item_rarity)};font-weight:700">${r.item_rarity}</td>
         <td style="${cell}">${pathLabel(r.event_code)}</td>
         <td style="${cell}">${r.channel_name ? `${escapeHtml(r.channel_name)}${r.channel_no ? '-' + r.channel_no : ''}` : '-'}</td>
@@ -585,13 +789,259 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ════════════════════════════════════
+//  캐릭터 상세 모달
+// ════════════════════════════════════
+const CHAR_MODAL = { char: null, detail: null, tab: 'gear' };
+
+// 장비 페이퍼돌 3열×4행 (row-major)
+// col1 = 방어구 상단 / col2 = 무기·추가장비 / col3 = 악세
+const EQ_SLOT_ORDER = [
+  'SHOULDER',    'WEAPON',      'AMULET',
+  'JACKET',      'SUPPORT',     'WRIST',
+  'PANTS',       'MAGIC_STONE', 'RING',
+  'WAIST',       'SHOES',       'EARRING',
+];
+const EQ_SLOT_LBL = {
+  SHOULDER:'머리어깨', JACKET:'상의', PANTS:'하의', WAIST:'벨트', SHOES:'신발',
+  AMULET:'목걸이', WRIST:'팔찌', RING:'반지', EARRING:'귀걸이',
+  MAGIC_STONE:'마법석', SUPPORT:'보조장비', WEAPON:'무기',
+};
+
+function openCharModalById(characterId) {
+  const c = PACT_STATE.characters.find(x => x.characterId === characterId);
+  if (c) openCharModal(c);
+}
+
+async function openCharModal(c) {
+  CHAR_MODAL.char = c;
+  CHAR_MODAL.detail = null;
+  const bd = document.getElementById('charModalBackdrop');
+  const md = document.getElementById('charModal');
+  bd.style.display = ''; md.style.display = '';
+  requestAnimationFrame(() => { bd.classList.add('show'); md.classList.add('show'); });
+  document.body.classList.add('modal-open');
+
+  document.getElementById('cmName').textContent   = c.characterName;
+  document.getElementById('cmServer').textContent = PACT_SERVER_KR[c.serverId] || c.serverId || '';
+  document.getElementById('cmMeta').textContent   =
+    `${c.jobGrowName || '-'} · 명성 ${c.fame ?? '-'}`;
+
+  switchCharTab(CHAR_MODAL.tab);  // 초기 탭
+
+  // 상세 조회
+  try {
+    const qs = new URLSearchParams({ serverId: c.serverId, characterId: c.characterId });
+    const res = await fetch(`/api/character-detail?${qs}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    CHAR_MODAL.detail = json;
+    renderCharTab(CHAR_MODAL.tab);
+  } catch (e) {
+    const pane = document.getElementById(`cmpane-${CHAR_MODAL.tab}`);
+    pane.innerHTML = `<div class="cm-err">조회 실패: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function closeCharModal() {
+  const bd = document.getElementById('charModalBackdrop');
+  const md = document.getElementById('charModal');
+  bd.classList.remove('show'); md.classList.remove('show');
+  document.body.classList.remove('modal-open');
+  setTimeout(() => { bd.style.display = 'none'; md.style.display = 'none'; }, 200);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('charModal').classList.contains('show')) closeCharModal();
+});
+
+const CHAR_TABS = ['summary','gear','pact','timeline'];
+
+function switchCharTab(tab) {
+  CHAR_MODAL.tab = tab;
+  for (const t of CHAR_TABS) {
+    document.getElementById(`cmpane-${t}`).style.display = t === tab ? '' : 'none';
+    document.getElementById(`cmtab-${t}`).classList.toggle('active', t === tab);
+  }
+  renderCharTab(tab);
+}
+
+function renderCharTab(tab) {
+  const pane = document.getElementById(`cmpane-${tab}`);
+  if (!CHAR_MODAL.detail && tab !== 'timeline') {
+    pane.innerHTML = `<div class="cm-loading"><span class="t-spin">⏳</span> 불러오는 중...</div>`;
+    return;
+  }
+  if (tab === 'summary')  renderCharSummary(pane, CHAR_MODAL.detail);
+  if (tab === 'gear')     renderCharGear(pane, CHAR_MODAL.detail);
+  if (tab === 'pact')     renderCharPact(pane, CHAR_MODAL.detail);
+  if (tab === 'timeline') renderCharTimeline(pane);
+}
+
+// 서약 레이아웃 (3×4): row-major 순서
+// 중앙(1,1) = 서약 · 맨 아랫줄 3칸 = 태초 가능 · 나머지 8칸 = 에픽 전용 결정
+const PACT_SLOT_META = [
+  { kind:'crystal' }, { kind:'crystal' }, { kind:'crystal' },
+  { kind:'crystal' }, { kind:'main' },    { kind:'crystal' },
+  { kind:'crystal' }, { kind:'crystal' }, { kind:'crystal' },
+  { kind:'taecho' },  { kind:'taecho' },  { kind:'taecho' },
+];
+
+function renderCharPact(pane, detail) {
+  // Neople API에서 서약 장착 데이터가 아직 없으므로 슬롯 구조만 렌더.
+  // 향후 detail.pact 등이 생기면 여기서 주입.
+  const slots = PACT_SLOT_META.map(meta => {
+    const cls = meta.kind === 'main'   ? 'pact-main'
+              : meta.kind === 'taecho' ? 'taecho-ok'
+              : '';
+    const lbl = meta.kind === 'main'   ? '서약'
+              : meta.kind === 'taecho' ? '결정'
+              : '결정';
+    return `<div class="pact-slot empty ${cls}">
+      <div class="ps-img"><span style="font-size:18px;opacity:.3">·</span></div>
+      <div class="ps-lbl">${lbl}</div>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `
+    <div class="pact-grid">${slots}</div>
+    <div class="pact-legend">
+      <span class="lg main">서약(중앙)</span>
+      <span class="lg">에픽 전용 결정 · 8칸</span>
+      <span class="lg taecho">태초 가능 결정 · 3칸</span>
+    </div>
+    <div style="margin-top:14px;padding:10px 12px;background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.5;text-align:center">
+      💡 현재는 슬롯 구조만 표시됩니다 — 착용 중인 서약/결정 데이터는 곧 추가됩니다
+    </div>
+  `;
+}
+
+function renderCharGear(pane, detail) {
+  const eq = detail.equipment ?? [];
+  if (detail.errors?.equipment) {
+    pane.innerHTML = `<div class="cm-err">장비 조회 실패: ${escapeHtml(detail.errors.equipment)}</div>`;
+    return;
+  }
+  const bySlot = {};
+  for (const e of eq) bySlot[e.slotId] = e;
+
+  const slotHtml = slot => {
+    const lbl = EQ_SLOT_LBL[slot];
+    const e = bySlot[slot];
+    if (!e) {
+      return `<div class="eq-slot empty">
+        <div class="eq-img"><span style="font-size:18px;opacity:.3">·</span></div>
+        <div class="eq-slot-lbl">${lbl}</div>
+        <div class="eq-meta">미장착</div>
+      </div>`;
+    }
+    const enchant = e.reinforce ? `<span class="eq-enchant">+${e.reinforce}</span>` : '';
+    const amp = e.amplificationName ? ` · <span class="eq-amp">${escapeHtml(e.amplificationName)}</span>` : '';
+    const img = e.itemId
+      ? `<img src="https://img-api.neople.co.kr/df/items/${encodeURIComponent(e.itemId)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+      : '';
+    return `<div class="eq-slot r-${escapeHtml(e.itemRarity ?? '')}">
+      <div class="eq-img">${img}</div>
+      <div class="eq-slot-lbl">${lbl} ${enchant}</div>
+      <div class="eq-name">${escapeHtml(e.itemName ?? '')}</div>
+      <div class="eq-meta">${escapeHtml(e.itemRarity ?? '')}${amp}</div>
+    </div>`;
+  };
+
+  pane.innerHTML = `<div class="eq-layout">${EQ_SLOT_ORDER.map(slotHtml).join('')}</div>`;
+}
+
+function renderCharSummary(pane, detail) {
+  const b = detail.basic || {};
+  const s = detail.status || {};
+  const fame = b.fame ?? '-';
+  const adv  = b.adventureName ?? CHAR_MODAL.char?.adventureName ?? '-';
+  const guild = b.guildName || '-';
+  const level = b.level ?? '-';
+  const job = b.jobGrowName || CHAR_MODAL.char?.jobGrowName || '-';
+
+  const fmt = n => (n ?? n === 0) ? Number(n).toLocaleString('ko-KR') : '-';
+  const buffPow  = s.status?.find(x => x.name === '버프력')?.value;
+  const damInc   = s.status?.find(x => x.name === '데미지 증가')?.value;
+
+  pane.innerHTML = `
+    <div class="cm-summary">
+      <div class="cm-stat-grid">
+        <div class="cm-stat h"><div class="cm-stat-lbl">명성</div><div class="cm-stat-val">${fmt(fame)}</div></div>
+        <div class="cm-stat"><div class="cm-stat-lbl">레벨</div><div class="cm-stat-val">${level}</div></div>
+        <div class="cm-stat"><div class="cm-stat-lbl">직업</div><div class="cm-stat-val" style="font-size:13px">${escapeHtml(job)}</div></div>
+        <div class="cm-stat"><div class="cm-stat-lbl">모험단</div><div class="cm-stat-val" style="font-size:13px">${escapeHtml(adv)}</div></div>
+        <div class="cm-stat"><div class="cm-stat-lbl">길드</div><div class="cm-stat-val" style="font-size:13px">${escapeHtml(guild)}</div></div>
+        ${buffPow != null ? `<div class="cm-stat"><div class="cm-stat-lbl">버프력</div><div class="cm-stat-val">${fmt(buffPow)}</div></div>` : ''}
+        ${damInc  != null ? `<div class="cm-stat"><div class="cm-stat-lbl">데미지 증가</div><div class="cm-stat-val">${fmt(damInc)}</div></div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+async function renderCharTimeline(pane) {
+  const c = CHAR_MODAL.char;
+  if (!c) return;
+  pane.innerHTML = `<div class="cm-loading"><span class="t-spin">⏳</span> 불러오는 중...</div>`;
+  try {
+    const qs = new URLSearchParams({
+      characterId: c.characterId,
+      rarity: '태초,에픽',
+      category: 'pact,soul',
+      limit: '200',
+    });
+    const res = await fetch(`/api/events?${qs}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || res.statusText);
+    const rows = json.rows || [];
+    if (!rows.length) {
+      pane.innerHTML = `<div class="empty" style="padding:30px 10px;text-align:center"><div class="emoji">📭</div>이 캐릭터의 획득 내역이 없습니다<div style="font-size:11px;margin-top:4px;color:var(--text4)">모달 닫고 갱신 버튼을 눌러보세요</div></div>`;
+      return;
+    }
+    const catChip = cat => cat === 'soul'
+      ? '<span class="cat-chip soul">결정</span>'
+      : '<span class="cat-chip pact">서약</span>';
+    const rarityColor = r => r === '태초' ? '#4caf50' : r === '에픽' ? '#ffb300' : '#888';
+    const cell = 'padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px';
+    const body = rows.map(r => {
+      const when = new Date(r.occurred_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+      return `<tr>
+        <td style="${cell};color:var(--text3);white-space:nowrap">${when}</td>
+        <td style="${cell}">${catChip(r.item_category)}${escapeHtml(r.item_name)}</td>
+        <td style="${cell};color:${rarityColor(r.item_rarity)};font-weight:700;white-space:nowrap">${r.item_rarity}</td>
+        <td style="${cell};color:var(--text4);white-space:nowrap">${pathLabelCode(r.event_code)}</td>
+      </tr>`;
+    }).join('');
+    pane.innerHTML = `
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">총 ${rows.length}건</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+        <thead><tr style="font-size:11px;color:var(--text3);text-align:left;background:var(--tab-bg)">
+          <th style="${cell}">시각</th><th style="${cell}">아이템</th><th style="${cell}">등급</th><th style="${cell}">경로</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>
+    `;
+  } catch (e) {
+    pane.innerHTML = `<div class="cm-err">조회 실패: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
 // 페이지 로드 시 해시 복원 (PACT_STATE 등 선언 이후에 실행)
 (function() {
   const h = location.hash.slice(1);
-  let t = 'refresh';
-  if (h === 'soul' || h === 'pact-gear' || h === 'pact-soul') t = h;
-  else if (h === 'pact') t = 'pact-gear'; // 이전 해시 호환
-  switchTab(t);
+  // 레거시 호환: pact / pact-gear / pact-soul → history/pact
+  if (h === 'pact' || h === 'pact-gear' || h === 'pact-soul') {
+    historySub = 'pact';
+    switchTab('history');
+    return;
+  }
+  if (h.startsWith('history')) {
+    const sub = h.split('/')[1];
+    if (sub === 'gear' || sub === 'pact') historySub = sub;
+    switchTab('history');
+    return;
+  }
+  switchTab(h === 'soul' ? 'soul' : 'refresh');
 })();
 
 // ════════════════════════════════════
