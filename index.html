@@ -108,8 +108,68 @@
   .cm-loading{text-align:center;padding:40px 0;color:var(--text3);font-size:13px}
   .cm-err{background:var(--error-bg);border:1px solid var(--error-border);color:#f87171;padding:12px;border-radius:8px;font-size:12px}
 
-  /* 장비 페이퍼돌 (3열 × 4행) */
-  .eq-layout{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  /* 장비 페이퍼돌: 5열×4행 — 좌2(방어구 5) + 중앙1(캐릭카드) + 우2(무기+칭호+액세 7) */
+  .eq-layout{
+    display:grid;
+    grid-template-columns:1fr 1fr 1.2fr 1fr 1fr;
+    grid-template-rows:repeat(4, auto);
+    grid-template-areas:
+      "SHO JAC cc WPN TTL"
+      "PAN WST cc WRI AMU"
+      "SHS g1  cc SUP RNG"
+      "g2  g3  cc EAR MST";
+    gap:6px;
+  }
+  .eq-layout > .eq-slot[data-slot="SHOULDER"]   {grid-area:SHO}
+  .eq-layout > .eq-slot[data-slot="JACKET"]     {grid-area:JAC}
+  .eq-layout > .eq-slot[data-slot="PANTS"]      {grid-area:PAN}
+  .eq-layout > .eq-slot[data-slot="WAIST"]      {grid-area:WST}
+  .eq-layout > .eq-slot[data-slot="SHOES"]      {grid-area:SHS}
+  .eq-layout > .eq-slot[data-slot="WEAPON"]     {grid-area:WPN}
+  .eq-layout > .eq-slot[data-slot="TITLE"]      {grid-area:TTL}
+  .eq-layout > .eq-slot[data-slot="WRIST"]      {grid-area:WRI}
+  .eq-layout > .eq-slot[data-slot="AMULET"]     {grid-area:AMU}
+  .eq-layout > .eq-slot[data-slot="SUPPORT"]    {grid-area:SUP}
+  .eq-layout > .eq-slot[data-slot="RING"]       {grid-area:RNG}
+  .eq-layout > .eq-slot[data-slot="EARRING"]    {grid-area:EAR}
+  .eq-layout > .eq-slot[data-slot="MAGIC_STONE"]{grid-area:MST}
+  .eq-layout .eq-gap{background:transparent;border:none}
+  .eq-layout .eq-center-card{
+    grid-area:cc;
+    background:linear-gradient(160deg,var(--card),var(--tab-bg));
+    border:1px solid var(--border);border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;padding:12px 8px;text-align:center;min-height:100%;
+  }
+  .eq-layout .eq-center-card .ecc-avatar{
+    width:64px;height:64px;border-radius:10px;background:var(--avatar-bg);
+    overflow:hidden;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--border);
+  }
+  .eq-layout .eq-center-card .ecc-avatar img{width:100%;height:100%;object-fit:cover}
+  .eq-layout .eq-center-card .ecc-name{font-size:12px;font-weight:900;line-height:1.2;word-break:keep-all}
+  .eq-layout .eq-center-card .ecc-job{font-size:10px;color:var(--text3);font-weight:700;line-height:1.2}
+  .eq-layout .eq-center-card .ecc-fame{
+    font-size:15px;font-weight:900;
+    background:linear-gradient(135deg,#60a5fa,#a78bfa);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    letter-spacing:-.01em;line-height:1;
+  }
+  .eq-layout .eq-center-card .ecc-fame-lbl{font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.06em;margin-top:-4px}
+  /* 모바일: 5열이라 슬롯이 좁으므로 내부 축소 */
+  @media(max-width:520px){
+    .eq-layout{gap:4px}
+    .eq-slot{padding:4px;gap:2px;min-height:78px}
+    .eq-img{width:34px;height:34px}
+    .eq-slot-lbl{font-size:9px}
+    .eq-name{font-size:10px}
+    .eq-meta{font-size:9px}
+    .eq-layout .eq-center-card{padding:8px 4px;gap:4px}
+    .eq-layout .eq-center-card .ecc-avatar{width:48px;height:48px}
+    .eq-layout .eq-center-card .ecc-name{font-size:11px}
+    .eq-layout .eq-center-card .ecc-job{font-size:9px}
+    .eq-layout .eq-center-card .ecc-fame{font-size:13px}
+  }
   .eq-slot{position:relative;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:96px;text-align:center;overflow:hidden}
   .eq-slot.empty{opacity:.55;border-style:dashed}
   .eq-img{width:44px;height:44px;border-radius:6px;background:var(--avatar-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
@@ -128,14 +188,22 @@
   .eq-slot.r-언커먼 .eq-name{color:#34d399}
   @media(max-width:420px){ .eq-slot{min-height:86px} }
 
-  /* 서약 3×4: 중앙=서약 · 주변 8=에픽 결정 · 아래 3=태초 가능 결정 */
-  .pact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  /* 서약 5×4: 좌우 기둥=에픽결정(각 4) · 중앙=서약 · 아래 중앙3=태초결정 */
+  .pact-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
   .pact-slot{position:relative;aspect-ratio:1;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px;text-align:center}
   .pact-slot.empty{opacity:.55;border-style:dashed}
+  .pact-slot.pact-gap{background:transparent;border:none;aspect-ratio:1}
   .pact-slot .ps-img{width:40px;height:40px;border-radius:6px;background:var(--avatar-bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
   .pact-slot .ps-img img{max-width:100%;max-height:100%;object-fit:contain}
   .pact-slot .ps-lbl{font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.04em}
   .pact-slot .ps-name{font-size:10px;font-weight:700;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all;max-width:100%}
+  /* 모바일 5열이 너무 좁을 수 있으므로 슬롯 내부 여유 축소 */
+  @media(max-width:520px){
+    .pact-grid{gap:4px}
+    .pact-slot{padding:4px;gap:2px}
+    .pact-slot .ps-img{width:32px;height:32px}
+    .pact-slot .ps-lbl{font-size:8px}
+  }
   .pact-slot.pact-main{border-color:#a78bfa99;background:linear-gradient(135deg,var(--card),#a78bfa18);box-shadow:0 0 14px #a78bfa30 inset}
   .pact-slot.pact-main .ps-lbl{color:#a78bfa}
   .pact-slot.taecho-ok{border-color:#4caf5077;background:linear-gradient(135deg,var(--card),#4caf5012)}
@@ -372,36 +440,25 @@
     .pane-header h1{font-size:32px}
     .pane-header .sub{font-size:14px}
 
-    /* 장비 페이퍼돌: 5열 좌6/캐릭카드/우6 구조 (모달 안) */
-    .cm-body .eq-layout{
-      display:grid;
-      grid-template-columns:repeat(5, minmax(0, 1fr));
-      grid-template-rows:repeat(6, auto);
-      grid-template-areas:
-        "a1 a1 cc e1 e1"
-        "a2 a2 cc e2 e2"
-        "a3 a3 cc e3 e3"
-        "a4 a4 cc e4 e4"
-        "a5 a5 cc e5 e5"
-        "a6 a6 cc e6 e6";
-      gap:8px;
-    }
+    /* 장비 페이퍼돌 PC — 5열×4행 구조는 기본과 동일, 여유 있는 크기 */
+    .cm-body .eq-layout{gap:8px}
     .cm-body .eq-layout .eq-slot{min-height:108px}
-    /* 좌측(방어구 6) 슬롯 그리드 배치: 머리어깨/상의/하의/벨트/신발/보조장비 */
-    .cm-body .eq-layout > .eq-slot[data-slot="SHOULDER"]{grid-area:a1}
-    .cm-body .eq-layout > .eq-slot[data-slot="JACKET"]  {grid-area:a2}
+    .cm-body .eq-layout .eq-slot{min-height:110px}
+    /* 좌측 2열 × 3행 (사진대로): 상의·머리어깨 / 하의·벨트 / 신발·보조 */
+    .cm-body .eq-layout > .eq-slot[data-slot="JACKET"]  {grid-area:a1}
+    .cm-body .eq-layout > .eq-slot[data-slot="SHOULDER"]{grid-area:a2}
     .cm-body .eq-layout > .eq-slot[data-slot="PANTS"]   {grid-area:a3}
     .cm-body .eq-layout > .eq-slot[data-slot="WAIST"]   {grid-area:a4}
     .cm-body .eq-layout > .eq-slot[data-slot="SHOES"]   {grid-area:a5}
     .cm-body .eq-layout > .eq-slot[data-slot="SUPPORT"] {grid-area:a6}
-    /* 우측(액세/무기 6): 목걸이/팔찌/반지/귀걸이/마법석/무기 */
+    /* 우측 2열 × 3행 (사진대로): 목걸이·무기 / 팔찌·반지 / 귀걸이·마법석 */
     .cm-body .eq-layout > .eq-slot[data-slot="AMULET"]     {grid-area:e1}
-    .cm-body .eq-layout > .eq-slot[data-slot="WRIST"]      {grid-area:e2}
-    .cm-body .eq-layout > .eq-slot[data-slot="RING"]       {grid-area:e3}
-    .cm-body .eq-layout > .eq-slot[data-slot="EARRING"]    {grid-area:e4}
-    .cm-body .eq-layout > .eq-slot[data-slot="MAGIC_STONE"]{grid-area:e5}
-    .cm-body .eq-layout > .eq-slot[data-slot="WEAPON"]     {grid-area:e6}
-    /* 중앙 캐릭 카드 */
+    .cm-body .eq-layout > .eq-slot[data-slot="WEAPON"]     {grid-area:e2}
+    .cm-body .eq-layout > .eq-slot[data-slot="WRIST"]      {grid-area:e3}
+    .cm-body .eq-layout > .eq-slot[data-slot="RING"]       {grid-area:e4}
+    .cm-body .eq-layout > .eq-slot[data-slot="EARRING"]    {grid-area:e5}
+    .cm-body .eq-layout > .eq-slot[data-slot="MAGIC_STONE"]{grid-area:e6}
+    /* 중앙 캐릭 카드 (4행 span) */
     .cm-body .eq-layout .eq-center-card{
       grid-area:cc;
       background:linear-gradient(160deg,var(--card),var(--tab-bg));
@@ -428,10 +485,10 @@
     /* 모달 PC에서 확장 */
     .char-modal{width:min(1040px, calc(100vw - 48px))}
 
-    /* 서약 그리드 slight 확장 */
-    .cm-body .pact-grid{max-width:520px;margin:0 auto;gap:8px}
-    .cm-body .pact-slot{min-height:108px}
-    .cm-body .pact-slot .ps-img{width:48px;height:48px}
+    /* 서약 그리드 PC 확장 — 5열(20칸) 구조 */
+    .cm-body .pact-grid{max-width:640px;margin:0 auto;gap:8px}
+    .cm-body .pact-slot{min-height:92px}
+    .cm-body .pact-slot .ps-img{width:44px;height:44px}
 
     /* 모바일 전용 gear placeholder 3열 제한은 해제 — 4열 유지 */
     .gear-grid{grid-template-columns:repeat(6,1fr)}
@@ -920,18 +977,16 @@ function escapeHtml(s) {
 // ════════════════════════════════════
 const CHAR_MODAL = { char: null, detail: null, tab: 'gear' };
 
-// 장비 페이퍼돌 3열×4행 (row-major)
-// col1 = 방어구 상단 / col2 = 무기·추가장비 / col3 = 악세
+// 장비 페이퍼돌 5열×4행 (사용자 지정 배치)
+// 좌 2열: 방어구 5 + 빈칸 3 / 우 2열: 무기·칭호·보조·액세 7
 const EQ_SLOT_ORDER = [
-  'SHOULDER',    'WEAPON',      'AMULET',
-  'JACKET',      'SUPPORT',     'WRIST',
-  'PANTS',       'MAGIC_STONE', 'RING',
-  'WAIST',       'SHOES',       'EARRING',
+  'SHOULDER', 'JACKET', 'PANTS', 'WAIST', 'SHOES',
+  'WEAPON', 'TITLE', 'WRIST', 'AMULET', 'SUPPORT', 'RING', 'EARRING', 'MAGIC_STONE',
 ];
 const EQ_SLOT_LBL = {
   SHOULDER:'머리어깨', JACKET:'상의', PANTS:'하의', WAIST:'벨트', SHOES:'신발',
   AMULET:'목걸이', WRIST:'팔찌', RING:'반지', EARRING:'귀걸이',
-  MAGIC_STONE:'마법석', SUPPORT:'보조장비', WEAPON:'무기',
+  MAGIC_STONE:'마법석', SUPPORT:'보조장비', WEAPON:'무기', TITLE:'칭호',
 };
 
 function openCharModalById(characterId) {
@@ -1004,19 +1059,23 @@ function renderCharTab(tab) {
   if (tab === 'timeline') renderCharTimeline(pane);
 }
 
-// 서약 레이아웃 (3×4): row-major 순서
-// 중앙(1,1) = 서약 · 맨 아랫줄 3칸 = 태초 가능 · 나머지 8칸 = 에픽 전용 결정
+// 서약 레이아웃 (5×4, row-major 20칸):
+// 1행: 에픽 · 빈 · 빈 · 빈 · 에픽
+// 2행: 에픽 · 빈 · 서약 · 빈 · 에픽
+// 3행: 에픽 · 빈 · 빈 · 빈 · 에픽
+// 4행: 에픽 · 태초 · 태초 · 태초 · 에픽
 const PACT_SLOT_META = [
-  { kind:'crystal' }, { kind:'crystal' }, { kind:'crystal' },
-  { kind:'crystal' }, { kind:'main' },    { kind:'crystal' },
-  { kind:'crystal' }, { kind:'crystal' }, { kind:'crystal' },
-  { kind:'taecho' },  { kind:'taecho' },  { kind:'taecho' },
+  { kind:'crystal' }, { kind:'gap' },    { kind:'gap' },     { kind:'gap' },    { kind:'crystal' },
+  { kind:'crystal' }, { kind:'gap' },    { kind:'main' },    { kind:'gap' },    { kind:'crystal' },
+  { kind:'crystal' }, { kind:'gap' },    { kind:'gap' },     { kind:'gap' },    { kind:'crystal' },
+  { kind:'crystal' }, { kind:'taecho' }, { kind:'taecho' },  { kind:'taecho' }, { kind:'crystal' },
 ];
 
 function renderCharPact(pane, detail) {
-  // Neople API에서 서약 장착 데이터가 아직 없으므로 슬롯 구조만 렌더.
-  // 향후 detail.pact 등이 생기면 여기서 주입.
   const slots = PACT_SLOT_META.map(meta => {
+    if (meta.kind === 'gap') {
+      return `<div class="pact-slot pact-gap" aria-hidden="true"></div>`;
+    }
     const cls = meta.kind === 'main'   ? 'pact-main'
               : meta.kind === 'taecho' ? 'taecho-ok'
               : '';
@@ -1033,8 +1092,8 @@ function renderCharPact(pane, detail) {
     <div class="pact-grid">${slots}</div>
     <div class="pact-legend">
       <span class="lg main">서약(중앙)</span>
-      <span class="lg">에픽 전용 결정 · 8칸</span>
-      <span class="lg taecho">태초 가능 결정 · 3칸</span>
+      <span class="lg">에픽 결정 · 8칸 (좌우 4+4)</span>
+      <span class="lg taecho">태초 결정 · 3칸 (하단 중앙)</span>
     </div>
     <div style="margin-top:14px;padding:10px 12px;background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.5;text-align:center">
       💡 현재는 슬롯 구조만 표시됩니다 — 착용 중인 서약/결정 데이터는 곧 추가됩니다
@@ -1089,7 +1148,7 @@ function renderCharGear(pane, detail) {
     <div class="ecc-fame-lbl">명성</div>
   </div>`;
 
-  pane.innerHTML = `<div class="eq-layout">${EQ_SLOT_ORDER.map(slotHtml).join('')}${centerCard}</div>`;
+  pane.innerHTML = `<div class="eq-layout">${EQ_SLOT_ORDER.map(slotHtml).join('')}${centerCard}<div class="eq-gap" style="grid-area:g1"></div><div class="eq-gap" style="grid-area:g2"></div><div class="eq-gap" style="grid-area:g3"></div><div class="eq-gap" style="grid-area:g4"></div></div>`;
 }
 
 function renderCharSummary(pane, detail) {
