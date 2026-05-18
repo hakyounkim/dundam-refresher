@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DF Console · 던파 유틸 리디자인</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- SVG icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18"/><path d="m12 21 3-12-3-6-3 6 3 12"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7l3 3"/><path d="M21 4v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7l-3-3"/><path d="M3 20v-5h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 9v6l-4-2v-4z"/></symbol>
+    <symbol id="i-sword" viewBox="0 0 24 24"><path d="m14 4 6 6-3 3-2-2-7 7H4v-4l7-7-2-2z"/></symbol>
+    <symbol id="i-pact" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></symbol>
+    <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="side">
+    <div class="side-brand">
+      <div class="side-brand-mark">⚡</div>
+      <div class="side-brand-text">
+        DF Console
+        <small>v2 redesign</small>
+      </div>
+    </div>
+
+    <div class="side-section-label">유틸리티</div>
+    <nav class="side-nav">
+      <button class="nav-btn active" data-tab="refresh">
+        <span class="nav-ico"><svg class="ico"><use href="#i-bolt"/></svg></span>
+        <span>일괄 갱신기</span>
+        <span class="nav-count" id="navCountRefresh">8</span>
+      </button>
+      <button class="nav-btn" data-tab="history">
+        <span class="nav-ico"><svg class="ico"><use href="#i-history"/></svg></span>
+        <span>드랍 기록</span>
+        <span class="nav-count" id="navCountHistory">84</span>
+      </button>
+      <button class="nav-btn" data-tab="soul">
+        <span class="nav-ico"><svg class="ico"><use href="#i-gem"/></svg></span>
+        <span>계시 환산기</span>
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-foot-row">
+        <svg class="ico sm"><use href="#i-refresh"/></svg>
+        <span>최근 동기화 · <span id="lastSync">방금</span></span>
+      </div>
+      <button class="btn ghost" id="themeBtn" title="테마 변경" style="justify-content:flex-start;gap:8px">
+        <svg class="ico"><use href="#i-moon"/></svg>
+        <span id="themeLbl">다크 모드</span>
+      </button>
+      <button class="btn ghost" id="tweaksBtn" title="설정" style="justify-content:flex-start;gap:8px">
+        <svg class="ico"><use href="#i-cog"/></svg>
+        <span>설정</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-crumb">DF Console</div>
+      <h2 class="topbar-title" id="pageCrumb">일괄 갱신기</h2>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-actions">
+        <span class="badge" id="advTag">
+          <svg class="ico sm" style="color:var(--accent)"><use href="#i-bolt"/></svg>
+          <span id="advTagName">별빛모험단</span>
+          <span style="color:var(--text-4)">·</span>
+          <span id="advTagServer" style="color:var(--text-3);font-weight:600">카시야스</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- ══════════ TAB: REFRESHER ══════════ -->
+    <section class="page" id="pane-refresh">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">일괄 갱신기</h1>
+          <p class="page-sub">모험단 검색 → 캐릭 선택 → 던담 데이터 한번에 갱신</p>
+        </div>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="stat-strip" id="refreshStats">
+        <!-- populated -->
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="ico" style="color:var(--text-3)"><use href="#i-search"/></svg>
+          <input type="text" id="advName" placeholder="모험단명 입력 후 Enter…" maxlength="12">
+        </div>
+        <button class="btn primary" id="searchBtn">검색</button>
+        <span class="toolbar-divider"></span>
+        <button class="btn" id="selectAllBtn">전체 선택</button>
+        <button class="btn ghost sm" id="selectNoneBtn">해제</button>
+        <span class="toolbar-divider"></span>
+        <span class="num" id="selCount" style="color:var(--text-3);font-size:12px;font-weight:600;padding:0 4px">0 / 0 선택</span>
+        <button class="btn primary" id="refreshGoBtn">
+          <svg class="ico sm"><use href="#i-refresh"/></svg>
+          <span>선택 갱신</span>
+        </button>
+      </div>
+
+      <!-- Recent searches -->
+      <div class="recent-row" id="recentRow" style="display:none">
+        <span class="recent-label">최근</span>
+      </div>
+
+      <div class="progress-bar" id="progBar"><div class="pfill" id="progFill"></div></div>
+
+      <!-- Character grid -->
+      <div class="char-grid" id="charGrid"></div>
+
+      <!-- Log -->
+      <div class="log-panel" id="logPanel" style="display:none">
+        <div class="log-panel-head">
+          <svg class="ico sm"><use href="#i-bolt"/></svg>
+          실행 로그
+        </div>
+        <div class="log-panel-body" id="logBody"></div>
+      </div>
+    </section>
+
+    <!-- ══════════ TAB: HISTORY ══════════ -->
+    <section class="page" id="pane-history" style="display:none">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">드랍 기록</h1>
+          <p class="page-sub">서약·결정·장비 파밍 내역을 한 눈에</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="segmented" id="historySub">
+            <button class="seg active" data-sub="gear"><svg class="ico sm"><use href="#i-sword"/></svg>&nbsp;장비</button>
+            <button class="seg" data-sub="pact"><svg class="ico sm"><use href="#i-pact"/></svg>&nbsp;서약·결정</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-strip" id="historyStats"></div>
+
+      <!-- Subpane: GEAR (new design — matrix) -->
+      <div id="subpane-gear">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="ico" style="color:var(--text-3)"><use href="#i-filter"/></svg>
+            <span style="font-size:12px;color:var(--text-3);font-weight:600">필터:</span>
+            <span style="flex:1"></span>
+          </div>
+          <div class="segmented">
+            <button class="seg active" data-gear-rarity="all">전체</button>
+            <button class="seg" data-gear-rarity="taecho">태초만</button>
+            <button class="seg" data-gear-rarity="epic">에픽만</button>
+          </div>
+          <span class="toolbar-divider"></span>
+          <button class="btn">
+            <svg class="ico sm"><use href="#i-eye"/></svg>
+            <span>전체 펼치기</span>
+          </button>
+        </div>
+
+        <div class="matrix-wrap">
+          <div class="matrix" id="gearMatrix"></div>
+        </div>
+
+        <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:12px;font-size:11px;color:var(--text-3)">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="width:10px;height:10px;border-radius:3px;background:oklch(from var(--r-taecho) l c h / 0.4);border:1px solid var(--r-taecho)"></span>
+            태초
+          </span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="width:10px;height:10px;border-radius:3px;background:oklch(from var(--r-epic) l c h / 0.4);border:1px solid var(--r-epic)"></span>
+            에픽
+          </span>
+        </div>
+      </div>
+
+      <!-- Subpane: PACT (table) -->
+      <div id="subpane-pact" style="display:none">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="ico" style="color:var(--text-3)"><use href="#i-search"/></svg>
+            <input type="text" id="pactSearch" placeholder="아이템·캐릭·던전 검색…">
+          </div>
+          <span class="toolbar-divider"></span>
+          <div class="segmented" id="pactCatSeg">
+            <button class="seg active" data-cat="all">전체</button>
+            <button class="seg" data-cat="pact">서약</button>
+            <button class="seg" data-cat="soul">결정</button>
+          </div>
+          <div class="segmented" id="pactRaritySeg">
+            <button class="seg active" data-rarity="all">전체</button>
+            <button class="seg" data-rarity="태초">태초</button>
+            <button class="seg" data-rarity="에픽">에픽</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="data-table" id="pactTable">
+              <thead>
+                <tr>
+                  <th>시각</th>
+                  <th>캐릭</th>
+                  <th>아이템</th>
+                  <th>등급</th>
+                  <th>경로</th>
+                  <th>채널</th>
+                  <th>던전</th>
+                </tr>
+              </thead>
+              <tbody id="pactTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ TAB: SOUL ══════════ -->
+    <section class="page page-narrow" id="pane-soul" style="display:none">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">계시 환산기</h1>
+          <p class="page-sub">결정·아이템 시세 환산</p>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:11px;color:var(--text-3)">마지막 갱신 4분 전</span>
+          <button class="btn icon" title="새로고침">
+            <svg class="ico"><use href="#i-refresh"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="soul-meta-row">
+        <span>기준:</span>
+        <span class="basis">태초의 결정 · 28,400,000 골드</span>
+        <span style="margin-left:auto;color:var(--text-4);font-size:11px">클릭하면 상세 펼침</span>
+      </div>
+
+      <div class="soul-grid" id="soulGrid"></div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head">
+          <div class="card-title">금지 입찰 / 시세 추적</div>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-3)">실시간 경매장 기준</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="data-table bid-table">
+            <thead>
+              <tr>
+                <th class="col-item">아이템</th>
+                <th class="col-limit">상한</th>
+                <th class="col-next">차순위</th>
+                <th class="col-meta">남은 시간</th>
+              </tr>
+            </thead>
+            <tbody id="bidBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Modal — character detail ── -->
+<div class="modal-backdrop" id="modalBackdrop" style="display:none"></div>
+<div class="modal" id="modal" style="display:none">
+  <div class="modal-head">
+    <div class="avatar lg" id="modalAvatar"></div>
+    <div class="modal-head-info">
+      <div class="name">
+        <span id="modalName"></span>
+        <span class="badge" id="modalServer"></span>
+      </div>
+      <div class="meta">
+        <span id="modalJob"></span>
+        <span class="dot">·</span>
+        <span id="modalLevel"></span>
+        <span class="dot">·</span>
+        <span id="modalAdv">별빛모험단</span>
+      </div>
+    </div>
+    <div class="modal-head-fame">
+      <span class="label">명성</span>
+      <span class="value" id="modalFame"></span>
+    </div>
+    <button class="modal-close" id="modalCloseBtn"><svg class="ico"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="modal-tabs" id="modalTabs">
+    <button class="modal-tab active" data-mtab="summary">요약</button>
+    <button class="modal-tab" data-mtab="gear">⚔ 장비</button>
+    <button class="modal-tab" data-mtab="pact">🔮 서약</button>
+    <button class="modal-tab" data-mtab="timeline">🕘 타임라인</button>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+</div>
+
+<!-- ── Tweaks panel ── -->
+<div class="tweaks-pop" id="tweaksPop">
+  <div class="tweaks-head">
+    <span class="tweaks-head-title">Tweaks</span>
+    <button class="btn icon ghost sm" id="tweaksCloseBtn"><svg class="ico sm"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="tweaks-body">
+    <div class="tweaks-row">
+      <span class="tlbl">액센트 컬러</span>
+      <span class="tsub">버튼·하이라이트에 쓰이는 단일 액센트</span>
+      <div class="swatch-row" id="accentRow">
+        <div class="swatch active" data-accent="amber"  style="background:oklch(0.78 0.15 65)"></div>
+        <div class="swatch" data-accent="emerald"      style="background:oklch(0.74 0.17 148)"></div>
+        <div class="swatch" data-accent="azure"        style="background:oklch(0.72 0.18 240)"></div>
+        <div class="swatch" data-accent="violet"       style="background:oklch(0.72 0.20 295)"></div>
+        <div class="swatch" data-accent="coral"        style="background:oklch(0.72 0.18 25)"></div>
+      </div>
+    </div>
+    <div class="tweaks-row">
+      <span class="tlbl">밀도</span>
+      <div class="segmented">
+        <button class="seg active" data-density="comfortable">기본</button>
+        <button class="seg" data-density="compact">조밀</button>
+      </div>
+    </div>
+    <div class="tweaks-row">
+      <span class="tlbl">테마</span>
+      <div class="segmented">
+        <button class="seg active" data-theme-opt="dark">다크</button>
+        <button class="seg" data-theme-opt="light">라이트</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

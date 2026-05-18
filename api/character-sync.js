@@ -1,9 +1,10 @@
 import { requireDb } from './_db.js';
 import { fetchTimelinePages, parseKSTDate } from './_neople.js';
 import { classify } from './_classify.js';
+import { applyCors } from './_cors.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (applyCors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const API_KEY = process.env.NEOPLE_API_KEY?.trim();

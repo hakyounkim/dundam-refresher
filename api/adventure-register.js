@@ -1,4 +1,5 @@
 import { requireDb } from './_db.js';
+import { applyCors } from './_cors.js';
 
 // 갱신기와 동일하게 server=adven 로 모든 서버의 같은 모험단을 한 번에 가져온다.
 async function dundamSearch(adventureName) {
@@ -14,7 +15,7 @@ async function dundamSearch(adventureName) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (applyCors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const { adventureName } = req.body ?? {};
