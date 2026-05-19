@@ -741,8 +741,27 @@ $('#selectNoneBtn').addEventListener('click', () => {
 });
 
 // ── Refresh (던담 갱신 호출) ──
-// 동시성 3 워커풀로 병렬화 + 루프 안의 character-detail 재조회 생략 (마지막 register로 일괄 갱신).
-const REFRESH_CONCURRENCY = 3;
+// 동시성 5 워커풀로 병렬화 + 루프 안의 character-detail 재조회 생략 (마지막 register로 일괄 갱신).
+// 던담 viewData.jsp가 동시 5건 정도까지는 안정적으로 받아주는 편 (더 올리면 502 위험).
+const REFRESH_CONCURRENCY = 5;
+const REFRESH_MAX_ATTEMPTS = 3;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// A.refresh 호출에 재시도/백오프 래핑. 던담 일시적 502/timeout 자동 복구.
+async function refreshWithRetry(serverId, characterId, onAttempt) {
+  let lastErr;
+  for (let attempt = 1; attempt <= REFRESH_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await A.refresh(serverId, characterId);
+    } catch (e) {
+      lastErr = e;
+      if (attempt === REFRESH_MAX_ATTEMPTS) throw e;
+      if (onAttempt) onAttempt(attempt, e);
+      await sleep(500 * Math.pow(2, attempt - 1));   // 500ms → 1s → 2s
+    }
+  }
+  throw lastErr;
+}
 
 $('#refreshGoBtn').addEventListener('click', async () => {
   if (!state.characters.length) { alert('먼저 모험단을 검색해주세요'); return; }
@@ -778,7 +797,9 @@ $('#refreshGoBtn').addEventListener('click', async () => {
     }
     if (status) status.innerHTML = '<svg class="ico spin"><use href="#i-refresh"/></svg>';
     try {
-      await A.refresh(c.serverId, c.characterId);
+      await refreshWithRetry(c.serverId, c.characterId, (attempt, err) => {
+        logLine('info', `${c.characterName}: ${attempt}회차 실패 (${err.message}) — 재시도 중`);
+      });
       c.refreshed = true;
       const after = document.querySelector(`.char-card[data-id="${id}"]`);
       if (after) {

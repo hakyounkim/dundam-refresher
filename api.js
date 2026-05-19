@@ -134,7 +134,8 @@ function tierColorKey(tier) {
   return String(tier).split('-')[0];
 }
 
-// 던담의 세트 아이콘 번호 매핑 (https://dundam.xyz/img/lv115/set/{N}.png)
+// 12개 세트군 아이콘 매핑 (로컬 호스팅: /img/set/{N}.png)
+// 원본은 던담(dundam.xyz/img/lv115/set/{N}.png)에서 받아 프로젝트 루트에 보관 — 핫링크 피하려고 자체 서빙.
 // 세트 이름 + 서약 옵션 이름까지 같이 매칭 (서약 3개 = 세트 1개와 같은 아이콘)
 const DUNDAM_SET_ICONS = [
   { n: 1,  keys: ['황금향', '끝나지 않은 꿈', '황금의 세계', '숭배하라'] },
@@ -164,7 +165,7 @@ function getDundamSetIconUrl(name) {
   }
   if (!allMatches.length) return null;
   allMatches.sort((a, b) => b.len - a.len);
-  return `https://dundam.xyz/img/lv115/set/${allMatches[0].n}.png`;
+  return `/img/set/${allMatches[0].n}.png`;
 }
 
 // 등급명(한국어) → rarity css class
