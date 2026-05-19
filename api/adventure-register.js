@@ -66,6 +66,12 @@ export default async function handler(req, res) {
         characterName: c.name,
         jobGrowName: c.job,
         fame: c.fame,
+        // dundam이 계산해서 보내는 라이브 값들 — 그대로 통과
+        ozma: c.ozma ?? null,            // 딜러 딜 (오즈마 환산)
+        buffScore: c.buffScore ?? null,  // 버프점수
+        cri: c.cri ?? null,              // 크리티컬
+        setPoint: c.setPoint ?? null,    // 세트포인트 (있으면)
+        refreshTime: c.refreshTime ?? null,
       })),
     });
   } catch (e) {
