@@ -1,7 +1,4 @@
-import { applyCors } from './_cors.js';
-
 export default async function handler(req, res) {
-  if (applyCors(req, res)) return;
   const { server, key } = req.query;
 
   if (!server || !key) {
@@ -19,6 +16,10 @@ export default async function handler(req, res) {
     let refreshTime = null;
     try { refreshTime = JSON.parse(text).refreshTime ?? null; } catch {}
 
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
     return res.status(200).json({ ok: response.ok, status: response.status, key, server, refreshTime });
   } catch (e) {
     return res.status(500).json({ error: e.message, key, server });

@@ -3,1597 +3,381 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>던파 유틸</title>
+<title>DF Console · 던파 유틸 리디자인</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#0f1117;--card:#1a1d27;--tab-bg:#161922;--tab-active:#1e2130;
-    --border:#2a2d3a;--text:#e2e4e9;--text2:#6b7280;--text3:#555e72;
-    --text4:#8b93a8;--text5:#3a3f52;--text6:#444;
-    --avatar-bg:#252a3b;--log-bg:#13151e;--log-text:#555;
-    --best-bg:#1c1830;--best-border:#a78bfa44;
-    --chip-bg:#1a1d27;--chip-del:#444;
-    --input-bg:#1a1d27;--ctrl-bg:#1a1d27;--basis-bg:#1a1d27;
-    --char-on-bg:#1e1527;--char-hover:#3a3f52;
-    --error-bg:#1a0a0a;--error-border:#3a1010;
-    --tab-inactive:#555;--tab-inactive-h:#aaa;
-    --shadow:#0006;
-  }
-  [data-theme="light"]{
-    --bg:#f0f2f8;--card:#ffffff;--tab-bg:#e4e7f2;--tab-active:#ffffff;
-    --border:#d0d5e8;--text:#1a1d27;--text2:#5a6278;--text3:#6b7280;
-    --text4:#606878;--text5:#9097b0;--text6:#9097b0;
-    --avatar-bg:#e8eaf5;--log-bg:#f0f2f8;--log-text:#6b7280;
-    --best-bg:#f3eeff;--best-border:#a78bfa88;
-    --chip-bg:#ffffff;--chip-del:#9097b0;
-    --input-bg:#ffffff;--ctrl-bg:#ffffff;--basis-bg:#ffffff;
-    --char-on-bg:#ede8ff;--char-hover:#d0d5e8;
-    --error-bg:#fff0f0;--error-border:#ffcccc;
-    --tab-inactive:#888;--tab-inactive-h:#333;
-    --shadow:#0001;
-  }
-
-  *{margin:0;padding:0;box-sizing:border-box}
-  html{scrollbar-gutter:stable;overflow-y:scroll}
-  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}
-  .container{max-width:680px;margin:0 auto;padding:32px 20px}
-
-  /* ── 탭 + 테마 토글 ── */
-  .tab-bar{display:flex;gap:8px;margin-bottom:28px;align-items:center}
-  .tabs{display:flex;gap:4px;flex:1;background:var(--tab-bg);border:1px solid var(--border);border-radius:10px;padding:4px}
-  .tab{flex:1;font-family:inherit;font-size:13px;font-weight:700;background:none;border:none;color:var(--tab-inactive);padding:9px 0;border-radius:7px;cursor:pointer;transition:all .18s}
-  .tab:hover{color:var(--tab-inactive-h)}
-  .tab.active{background:var(--tab-active);color:var(--text);box-shadow:0 1px 3px var(--shadow)}
-  .theme-btn{flex-shrink:0;width:36px;height:36px;background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .18s}
-  .theme-btn:hover{border-color:var(--text5)}
-
-  /* ── 공통 헤더 ── */
-  .pane-header{margin-bottom:24px}
-  .pane-header h1{font-size:26px;font-weight:900;margin-bottom:4px}
-  .pane-header .sub{color:var(--text2);font-size:13px}
-  .h-refresh{background:linear-gradient(135deg,#ff6b6b,#ffa36b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .h-soul{background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .h-history{background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-
-  /* ── 기록: 서브탭 ── */
-  .subtabs{display:flex;gap:2px;background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:18px}
-  .subtab{flex:1;font-family:inherit;font-size:12px;font-weight:700;background:none;border:none;color:var(--tab-inactive);padding:7px 0;border-radius:6px;cursor:pointer;transition:all .15s}
-  .subtab:hover{color:var(--tab-inactive-h)}
-  .subtab.active{background:var(--tab-active);color:var(--text);box-shadow:0 1px 2px var(--shadow)}
-
-  /* ── 기록: 장비 탭 (개발 예정) ── */
-  .gear-ph{padding:28px 20px;background:var(--card);border:1px solid var(--border);border-radius:12px;text-align:center}
-  .gear-ph-title{font-size:15px;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .gear-ph-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6}
-  .gear-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:18px}
-  .gear-slot{aspect-ratio:1;background:var(--tab-bg);border:1px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text5);font-size:10px;font-weight:700;transition:all .4s ease-in-out;animation:gearPulse 3.2s ease-in-out infinite}
-  .gear-slot:nth-child(even){animation-delay:.4s}
-  .gear-slot:nth-child(3n){animation-delay:.8s}
-  .gear-slot .gear-emoji{font-size:20px;opacity:.35;filter:grayscale(.3)}
-  .gear-slot .gear-lbl{opacity:.6}
-  @keyframes gearPulse{0%,100%{border-color:var(--border);opacity:.7}50%{border-color:#a78bfa55;opacity:1}}
-  .gear-ph-footer{font-size:11px;color:var(--text4);background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:inline-flex;align-items:center;gap:8px}
-  .gear-ph-footer .blink{animation:blink 1.4s ease-in-out infinite}
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-  @media(max-width:480px){
-    .gear-grid{grid-template-columns:repeat(3,1fr)}
-  }
-
-  /* ── 기록: 카테고리 칩 ── */
-  .cat-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:6px;vertical-align:middle;letter-spacing:.02em}
-  .cat-chip.pact{background:#a78bfa22;border:1px solid #a78bfa55;color:#a78bfa}
-  .cat-chip.soul{background:#60a5fa22;border:1px solid #60a5fa55;color:#60a5fa}
-
-  /* ── 캐릭 모달 ── */
-  body.modal-open{overflow:hidden}
-  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:90;opacity:0;transition:opacity .2s}
-  .modal-backdrop.show{opacity:1}
-  .char-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-48%);width:min(760px,calc(100vw - 24px));max-height:calc(100vh - 48px);background:var(--bg);border:1px solid var(--border);border-radius:14px;z-index:100;box-shadow:0 16px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;opacity:0;transition:opacity .18s,transform .18s}
-  .char-modal.show{opacity:1;transform:translate(-50%,-50%)}
-  .cm-head{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--border)}
-  .cm-avatar{width:60px;height:60px;border-radius:10px;background:var(--avatar-bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-  .cm-avatar img{width:100%;height:100%;object-fit:cover}
-  .cm-head-info{flex:1;min-width:0}
-  .cm-name{font-size:18px;font-weight:900;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .cm-server{font-size:11px;font-weight:500;color:var(--text3);background:var(--tab-bg);border:1px solid var(--border);padding:2px 8px;border-radius:6px}
-  .cm-meta{font-size:12px;color:var(--text2);margin-top:3px}
-  .cm-close{flex-shrink:0;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text2);cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .15s}
-  .cm-close:hover{color:var(--text);border-color:var(--text5)}
-  .cm-subtabs{display:flex;gap:2px;background:var(--tab-bg);padding:3px;margin:12px 14px 0 14px;border-radius:8px;border:1px solid var(--border)}
-  .cm-subtab{flex:1;background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--tab-inactive);padding:7px 0;border-radius:6px;cursor:pointer;transition:all .15s}
-  .cm-subtab:hover{color:var(--tab-inactive-h)}
-  .cm-subtab.active{background:var(--tab-active);color:var(--text);box-shadow:0 1px 2px var(--shadow)}
-  .cm-body{flex:1;overflow-y:auto;padding:16px 18px}
-  .cm-loading{text-align:center;padding:40px 0;color:var(--text3);font-size:13px}
-  .cm-err{background:var(--error-bg);border:1px solid var(--error-border);color:#f87171;padding:12px;border-radius:8px;font-size:12px}
-
-  /* 장비 페이퍼돌: 5열×4행 — 좌2(방어구 5) + 중앙1(캐릭카드) + 우2(무기+칭호+액세 7) */
-  .eq-layout{
-    display:grid;
-    grid-template-columns:1fr 1fr 1.2fr 1fr 1fr;
-    grid-template-rows:repeat(4, auto);
-    grid-template-areas:
-      "SHO JAC cc WPN TTL"
-      "PAN WST cc WRI AMU"
-      "SHS g1  cc SUP RNG"
-      "g2  g3  cc EAR MST";
-    gap:6px;
-  }
-  .eq-layout > .eq-slot[data-slot="SHOULDER"]   {grid-area:SHO}
-  .eq-layout > .eq-slot[data-slot="JACKET"]     {grid-area:JAC}
-  .eq-layout > .eq-slot[data-slot="PANTS"]      {grid-area:PAN}
-  .eq-layout > .eq-slot[data-slot="WAIST"]      {grid-area:WST}
-  .eq-layout > .eq-slot[data-slot="SHOES"]      {grid-area:SHS}
-  .eq-layout > .eq-slot[data-slot="WEAPON"]     {grid-area:WPN}
-  .eq-layout > .eq-slot[data-slot="TITLE"]      {grid-area:TTL}
-  .eq-layout > .eq-slot[data-slot="WRIST"]      {grid-area:WRI}
-  .eq-layout > .eq-slot[data-slot="AMULET"]     {grid-area:AMU}
-  .eq-layout > .eq-slot[data-slot="SUPPORT"]    {grid-area:SUP}
-  .eq-layout > .eq-slot[data-slot="RING"]       {grid-area:RNG}
-  .eq-layout > .eq-slot[data-slot="EARRING"]    {grid-area:EAR}
-  .eq-layout > .eq-slot[data-slot="MAGIC_STONE"]{grid-area:MST}
-  .eq-layout .eq-gap{background:transparent;border:none}
-  .eq-layout .eq-center-card{
-    grid-area:cc;
-    background:linear-gradient(160deg,var(--card),var(--tab-bg));
-    border:1px solid var(--border);border-radius:12px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:8px;padding:12px 8px;text-align:center;min-height:100%;
-  }
-  .eq-layout .eq-center-card .ecc-avatar{
-    width:64px;height:64px;border-radius:10px;background:var(--avatar-bg);
-    overflow:hidden;display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
-  }
-  .eq-layout .eq-center-card .ecc-avatar img{width:100%;height:100%;object-fit:cover}
-  .eq-layout .eq-center-card .ecc-name{font-size:12px;font-weight:900;line-height:1.2;word-break:keep-all}
-  .eq-layout .eq-center-card .ecc-job{font-size:10px;color:var(--text3);font-weight:700;line-height:1.2}
-  .eq-layout .eq-center-card .ecc-fame{
-    font-size:15px;font-weight:900;
-    background:linear-gradient(135deg,#60a5fa,#a78bfa);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    letter-spacing:-.01em;line-height:1;
-  }
-  .eq-layout .eq-center-card .ecc-fame-lbl{font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.06em;margin-top:-4px}
-  /* 모바일: 5열이라 슬롯이 좁으므로 내부 축소 */
-  @media(max-width:520px){
-    .eq-layout{gap:4px}
-    .eq-slot{padding:4px;gap:2px;min-height:78px}
-    .eq-img{width:34px;height:34px}
-    .eq-slot-lbl{font-size:9px}
-    .eq-name{font-size:10px}
-    .eq-meta{font-size:9px}
-    .eq-layout .eq-center-card{padding:8px 4px;gap:4px}
-    .eq-layout .eq-center-card .ecc-avatar{width:48px;height:48px}
-    .eq-layout .eq-center-card .ecc-name{font-size:11px}
-    .eq-layout .eq-center-card .ecc-job{font-size:9px}
-    .eq-layout .eq-center-card .ecc-fame{font-size:13px}
-  }
-  .eq-slot{position:relative;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:96px;text-align:center;overflow:hidden}
-  .eq-slot.empty{opacity:.55;border-style:dashed}
-  .eq-img{width:44px;height:44px;border-radius:6px;background:var(--avatar-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
-  .eq-img img{max-width:100%;max-height:100%;object-fit:contain}
-  .eq-slot-lbl{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;gap:5px;width:100%}
-  .eq-name{font-size:11px;font-weight:700;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all}
-  .eq-meta{font-size:10px;color:var(--text4);line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .eq-enchant{color:#60a5fa;font-weight:800;font-size:11px}
-  .eq-amp{color:#ff8e53;font-weight:700}
-  .eq-slot.r-에픽{border-color:#ffb30055}
-  .eq-slot.r-에픽 .eq-name{color:#ffb300}
-  .eq-slot.r-태초{border-color:#4caf5077;background:linear-gradient(135deg,var(--card),#4caf5014)}
-  .eq-slot.r-태초 .eq-name{color:#4caf50}
-  .eq-slot.r-유니크 .eq-name{color:#c084fc}
-  .eq-slot.r-레어 .eq-name{color:#60a5fa}
-  .eq-slot.r-언커먼 .eq-name{color:#34d399}
-  @media(max-width:420px){ .eq-slot{min-height:86px} }
-
-  /* 서약 5×4: 좌우 기둥=에픽결정(각 4) · 중앙=서약 · 아래 중앙3=태초결정 */
-  .pact-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-  .pact-slot{position:relative;aspect-ratio:1;background:var(--card);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px;text-align:center}
-  .pact-slot.empty{opacity:.55;border-style:dashed}
-  .pact-slot.pact-gap{background:transparent;border:none;aspect-ratio:1}
-  .pact-slot .ps-img{width:40px;height:40px;border-radius:6px;background:var(--avatar-bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .pact-slot .ps-img img{max-width:100%;max-height:100%;object-fit:contain}
-  .pact-slot .ps-lbl{font-size:9px;color:var(--text3);font-weight:700;letter-spacing:.04em}
-  .pact-slot .ps-name{font-size:10px;font-weight:700;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all;max-width:100%}
-  /* 모바일 5열이 너무 좁을 수 있으므로 슬롯 내부 여유 축소 */
-  @media(max-width:520px){
-    .pact-grid{gap:4px}
-    .pact-slot{padding:4px;gap:2px}
-    .pact-slot .ps-img{width:32px;height:32px}
-    .pact-slot .ps-lbl{font-size:8px}
-  }
-  .pact-slot.pact-main{border-color:#a78bfa99;background:linear-gradient(135deg,var(--card),#a78bfa18);box-shadow:0 0 14px #a78bfa30 inset}
-  .pact-slot.pact-main .ps-lbl{color:#a78bfa}
-  .pact-slot.taecho-ok{border-color:#4caf5077;background:linear-gradient(135deg,var(--card),#4caf5012)}
-  .pact-slot.taecho-ok .ps-lbl{color:#4caf50}
-  .pact-slot.taecho-ok::after{content:'태초';position:absolute;top:3px;right:4px;font-size:8px;font-weight:800;color:#4caf50;background:#4caf5015;border:1px solid #4caf5055;padding:1px 4px;border-radius:3px;letter-spacing:.05em}
-  .pact-legend{display:flex;justify-content:center;gap:16px;margin-top:10px;font-size:10px;color:var(--text3)}
-  .pact-legend .lg{display:flex;align-items:center;gap:4px}
-  .pact-legend .lg::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid var(--border)}
-  .pact-legend .lg.main::before{border-color:#a78bfa99;background:#a78bfa18}
-  .pact-legend .lg.taecho::before{border-color:#4caf5077;background:#4caf5012}
-
-  /* 요약 탭 */
-  .cm-summary{display:flex;flex-direction:column;gap:14px}
-  .cm-stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
-  .cm-stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
-  .cm-stat-lbl{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.04em}
-  .cm-stat-val{font-size:16px;font-weight:900;margin-top:2px}
-  .cm-stat.h .cm-stat-val{background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-
-  /* ── 갱신기: 검색 ── */
-  .search{display:flex;gap:8px;margin-bottom:8px}
-  .search input,.search button{font-family:inherit;font-size:14px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);border-radius:8px;padding:10px 14px;outline:none;transition:border-color .2s}
-  .search input{flex:1;min-width:0}
-  .search input:focus{border-color:#ff6b6b}
-  .search input::placeholder{color:var(--text6)}
-  .search button{background:linear-gradient(135deg,#ff6b6b,#ff8e53);color:#fff;border:none;font-weight:700;cursor:pointer;padding:10px 20px;transition:opacity .2s;white-space:nowrap}
-  .search button:hover{opacity:.9}
-  .search button:disabled{opacity:.4;cursor:not-allowed}
-
-  /* ── 최근 검색 ── */
-  .recent-wrap{min-height:0;margin-bottom:16px}
-  .recent-list{display:flex;flex-wrap:wrap;gap:6px}
-  .recent-chip{display:inline-flex;align-items:center;gap:4px;background:var(--chip-bg);border:1px solid var(--border);border-radius:20px;padding:4px 10px 4px 12px;font-size:12px;color:var(--text4);cursor:pointer;transition:all .15s;white-space:nowrap}
-  .recent-chip:hover{border-color:#ff6b6b55;color:var(--text)}
-  .chip-del{background:none;border:none;color:var(--chip-del);cursor:pointer;font-size:13px;padding:0 0 0 2px;line-height:1;transition:color .15s}
-  .chip-del:hover{color:#f87171}
-
-  /* ── 갱신기: 컨트롤 ── */
-  .controls{display:none;justify-content:space-between;align-items:center;margin-bottom:12px}
-  .controls.show{display:flex}
-  .ctrl-left{display:flex;gap:6px;align-items:center}
-  .ctrl-left button{font-family:inherit;font-size:11px;background:var(--ctrl-bg);color:var(--text4);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;transition:all .2s}
-  .ctrl-left button:hover{border-color:#ff6b6b;color:#ff6b6b}
-  .ctrl-count{font-size:11px;color:var(--text2)}
-  .go-btn{font-family:inherit;font-size:13px;font-weight:700;background:linear-gradient(135deg,#ff6b6b,#ff8e53);color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;transition:opacity .2s}
-  .go-btn:hover{opacity:.9}
-  .go-btn:disabled{opacity:.4;cursor:not-allowed}
-
-  .progress{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px;display:none;overflow:hidden}
-  .progress.show{display:block}
-  .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#ff6b6b,#ffa36b);border-radius:2px;transition:width .3s}
-
-  /* ── 갱신기: 캐릭 목록 ── */
-  .char-list{display:flex;flex-direction:column;gap:4px}
-  .empty{text-align:center;padding:60px 20px;color:var(--text3);font-size:14px}
-  .empty .emoji{font-size:40px;margin-bottom:12px}
-
-  .char{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;user-select:none}
-  .char:hover{border-color:var(--char-hover)}
-  .char.on{background:var(--char-on-bg);border-color:#ff6b6b33}
-  .char.loading{border-color:#ffa36b55}
-  .char.done{border-color:#4caf5055}
-  .char.error{border-color:#f4433655}
-
-  .chk{width:18px;height:18px;border:2px solid var(--text5);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .15s}
-  .char.on .chk{background:#ff6b6b;border-color:#ff6b6b}
-
-  .avatar{width:36px;height:36px;border-radius:8px;background:var(--avatar-bg);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-  .avatar img{width:100%;height:100%;object-fit:cover;display:block}
-  .avatar svg{width:20px;height:20px;opacity:.35}
-
-  .info{flex:1;min-width:0}
-  .info-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .info-detail{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-  .rank{font-size:11px;color:#ff6b6b;text-align:right;flex-shrink:0;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:flex-end;gap:4px}
-  .rank.buff{color:#66bbff}
-  .rank .prev{color:var(--text3);font-size:11px;opacity:.75}
-  .rank .arrow{color:var(--text4);font-size:10px}
-  .rank .cur{font-weight:700}
-  .rank .diff{font-size:11px;font-weight:700}
-  .rank .diff.up{color:#4caf50}
-  .rank .diff.down{color:#f44336}
-  .rank .diff.same{color:var(--text3)}
-
-  .status{font-size:11px;flex-shrink:0;width:20px;text-align:center}
-  .status.s-load{color:#ffa36b}
-  .status.s-done{color:#4caf50}
-  .status.s-err{color:#f44336}
-
-  .log{margin-top:16px;background:var(--log-bg);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--log-text);font-family:'Courier New',monospace;max-height:100px;overflow-y:auto;display:none;border:1px solid var(--border)}
-  .log.show{display:block}
-  .log div{padding:1px 0}
-  .log .l-ok{color:#4caf50}
-  .log .l-err{color:#f44336}
-  .log .l-info{color:#ffa36b}
-
-  /* ── 소울 계산기 ── */
-  .soul-header-row{display:flex;align-items:center;gap:12px;margin-bottom:4px}
-  .soul-header-row h1{flex:1;min-width:0}
-  .soul-meta{display:flex;align-items:center;gap:10px;color:var(--text6);font-size:12px;margin-bottom:20px}
-  .soul-ts{color:var(--text2)}
-  .soul-refresh{flex-shrink:0;background:linear-gradient(135deg,#a78bfa,#60a5fa);border:none;color:#fff;cursor:pointer;font-size:22px;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:opacity .2s;box-shadow:0 2px 8px var(--shadow)}
-  .soul-refresh > span{display:inline-block;transition:transform .4s}
-  .soul-refresh:hover > span{transform:rotate(180deg)}
-  .soul-refresh:disabled{opacity:.4;cursor:not-allowed}
-  .soul-refresh:disabled > span{transform:none}
-
-  .section{margin-bottom:28px}
-  .section-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.06em;margin-bottom:10px;padding-left:2px}
-
-  .soul-list{display:flex;flex-direction:column;gap:4px}
-  .soul-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s;cursor:pointer}
-  .soul-card:hover{border-color:var(--char-hover)}
-  .soul-card.best{border-color:var(--best-border);background:var(--best-bg)}
-
-  .soul-row{display:flex;align-items:center;gap:12px;padding:11px 14px}
-  .soul-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-  .soul-name{flex:1;font-size:13px;font-weight:700}
-  .soul-exchange{font-size:11px;color:var(--text3);margin-right:4px}
-  .soul-price{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.02em}
-  .soul-price.best-price{color:#a78bfa}
-  .best-badge{font-size:10px;font-weight:700;color:#a78bfa;background:#a78bfa15;border:1px solid #a78bfa33;border-radius:4px;padding:2px 6px;margin-left:6px}
-  .chevron{font-size:10px;color:var(--text5);transition:transform .2s;flex-shrink:0}
-  .soul-card.open .chevron{transform:rotate(180deg)}
-
-  .soul-detail{display:none;padding:0 14px 12px 36px;font-size:11px;color:var(--text2);border-top:1px solid var(--border)}
-  .soul-card.open .soul-detail{display:block}
-  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;padding-top:10px}
-  .detail-label{color:var(--text3);margin-bottom:2px}
-  .detail-value{color:var(--text4);font-size:12px}
-
-  .basis-bar{background:var(--basis-bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px}
-  .basis-bar span{color:#a78bfa;font-weight:700}
-  .basis-hint{color:var(--text3);font-size:11px;margin-left:auto}
-
-  .bid-list{display:flex;flex-direction:column;gap:4px}
-  .bid-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:12px}
-  .bid-row.hdr{background:transparent;border:none;padding:2px 14px;font-size:11px;color:var(--text3);font-weight:700}
-  .bid-row.forbidden{background:#f8717115;border-color:#f8717133;border-left:3px solid #f87171}
-  .bid-item-name{font-size:13px;font-weight:700;color:var(--text)}
-  .bid-item-name.forbidden{color:#f87171}
-  .bid-val{text-align:right}
-  .bid-limit{color:#60a5fa;font-weight:700}
-  .bid-next{color:#f87171;text-align:right}
-  .bid-meta{font-size:11px;color:var(--text4);text-align:right}
-  .bid-forbidden{display:flex;align-items:center;gap:5px;grid-column:3 / -1;justify-content:flex-end;color:#f87171;font-size:11px;font-weight:700}
-  .bid-forbidden::before{content:'⛔';font-size:12px}
-
-  .s-loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
-  .s-spin{display:inline-block;animation:spin 1s linear infinite;font-size:20px;margin-bottom:8px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .error-msg{background:var(--error-bg);border:1px solid var(--error-border);border-radius:8px;padding:12px 16px;color:#f87171;font-size:12px;text-align:center}
-
-  /* ── 토스트 ── */
-  .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-12px);background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 28px;font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:14px;box-shadow:0 6px 24px var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .toast .t-spin{display:inline-block;animation:spin 1s linear infinite;font-size:20px}
-  .soul-app.refreshing{opacity:.6;transition:opacity .2s}
-
-  /* ── 푸터 ── */
-  .footer{text-align:center;margin-top:48px;color:var(--text5);font-size:11px}
-  .footer a{color:var(--text4);text-decoration:none}
-  .footer a:hover{color:var(--text)}
-
-  /* ── 반응형 ── */
-  @media(max-width:480px){
-    .container{padding:20px 14px}
-    .pane-header h1{font-size:22px}
-    .search{flex-wrap:wrap}
-    .search button{white-space:nowrap}
-    .controls{flex-wrap:wrap;gap:8px}
-    .ctrl-left{flex:1}
-    .go-btn{width:100%;padding:11px 0;font-size:14px}
-    .char{padding:10px;gap:8px}
-    .avatar{width:32px;height:32px}
-    .info-name{font-size:12px}
-    .rank{max-width:90px;font-size:10px}
-    .bid-row{grid-template-columns:1.3fr 1fr 1fr;gap:4px 8px}
-    .bid-row.hdr div:nth-child(4),.bid-row div:nth-child(4){display:none}
-  }
-
-  /* ══════════════════════════════════════════════
-     PC (≥1024px) — 사이드바 + 메인 레이아웃
-     ══════════════════════════════════════════════ */
-  @media(min-width:1024px){
-    html{overflow-y:auto}
-    body{min-height:100vh}
-
-    /* 컨테이너: 사이드바 + 메인 2컬럼 */
-    .container{
-      max-width:1280px;
-      padding:28px 32px;
-      display:grid;
-      grid-template-columns:220px 1fr;
-      gap:32px;
-      align-items:start;
-    }
-
-    /* 탭바를 세로 사이드바로 전환 */
-    .tab-bar{
-      position:sticky;top:28px;
-      display:flex;flex-direction:column;gap:14px;
-      margin-bottom:0;align-items:stretch;
-    }
-    .tab-bar::before{
-      content:'⚡ 던파 유틸';
-      font-size:17px;font-weight:900;
-      background:linear-gradient(135deg,#ff6b6b,#a78bfa);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-      padding:4px 8px 8px;border-bottom:1px solid var(--border);
-      margin-bottom:4px;letter-spacing:.01em;
-    }
-    .tabs{
-      flex:initial;flex-direction:column;gap:2px;
-      background:transparent;border:none;padding:0;
-    }
-    .tab{
-      flex:initial;text-align:left;
-      padding:11px 14px;font-size:14px;border-radius:8px;
-    }
-    .tab.active{background:var(--tab-active);box-shadow:inset 3px 0 0 #ff6b6b, 0 1px 3px var(--shadow)}
-    .theme-btn{
-      align-self:flex-start;width:40px;height:40px;
-      margin-top:auto;
-    }
-
-    /* 메인 영역 — 모든 pane이 여기에 들어감 */
-    #pane-refresh, #pane-soul, #pane-history{
-      min-width:0;
-    }
-
-    /* 헤더 여유 */
-    .pane-header h1{font-size:32px}
-    .pane-header .sub{font-size:14px}
-
-    /* 장비 페이퍼돌 PC — 5열×4행 구조는 기본과 동일, 여유 있는 크기 */
-    .cm-body .eq-layout{gap:8px}
-    .cm-body .eq-layout .eq-slot{min-height:108px}
-    .cm-body .eq-layout .eq-slot{min-height:110px}
-    /* 좌측 2열 × 3행 (사진대로): 상의·머리어깨 / 하의·벨트 / 신발·보조 */
-    .cm-body .eq-layout > .eq-slot[data-slot="JACKET"]  {grid-area:a1}
-    .cm-body .eq-layout > .eq-slot[data-slot="SHOULDER"]{grid-area:a2}
-    .cm-body .eq-layout > .eq-slot[data-slot="PANTS"]   {grid-area:a3}
-    .cm-body .eq-layout > .eq-slot[data-slot="WAIST"]   {grid-area:a4}
-    .cm-body .eq-layout > .eq-slot[data-slot="SHOES"]   {grid-area:a5}
-    .cm-body .eq-layout > .eq-slot[data-slot="SUPPORT"] {grid-area:a6}
-    /* 우측 2열 × 3행 (사진대로): 목걸이·무기 / 팔찌·반지 / 귀걸이·마법석 */
-    .cm-body .eq-layout > .eq-slot[data-slot="AMULET"]     {grid-area:e1}
-    .cm-body .eq-layout > .eq-slot[data-slot="WEAPON"]     {grid-area:e2}
-    .cm-body .eq-layout > .eq-slot[data-slot="WRIST"]      {grid-area:e3}
-    .cm-body .eq-layout > .eq-slot[data-slot="RING"]       {grid-area:e4}
-    .cm-body .eq-layout > .eq-slot[data-slot="EARRING"]    {grid-area:e5}
-    .cm-body .eq-layout > .eq-slot[data-slot="MAGIC_STONE"]{grid-area:e6}
-    /* 중앙 캐릭 카드 (4행 span) */
-    .cm-body .eq-layout .eq-center-card{
-      grid-area:cc;
-      background:linear-gradient(160deg,var(--card),var(--tab-bg));
-      border:1px solid var(--border);border-radius:12px;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      gap:10px;padding:18px 12px;text-align:center;min-height:100%;
-    }
-    .cm-body .eq-layout .eq-center-card .ecc-avatar{
-      width:96px;height:96px;border-radius:12px;background:var(--avatar-bg);
-      overflow:hidden;display:flex;align-items:center;justify-content:center;
-      border:1px solid var(--border);
-    }
-    .cm-body .eq-layout .eq-center-card .ecc-avatar img{width:100%;height:100%;object-fit:cover}
-    .cm-body .eq-layout .eq-center-card .ecc-name{font-size:15px;font-weight:900;line-height:1.25;word-break:keep-all}
-    .cm-body .eq-layout .eq-center-card .ecc-job{font-size:11px;color:var(--text3);font-weight:700}
-    .cm-body .eq-layout .eq-center-card .ecc-fame{
-      font-size:18px;font-weight:900;
-      background:linear-gradient(135deg,#60a5fa,#a78bfa);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-      letter-spacing:-.01em;
-    }
-    .cm-body .eq-layout .eq-center-card .ecc-fame-lbl{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.06em;margin-top:-6px}
-
-    /* 모달 PC에서 확장 */
-    .char-modal{width:min(1040px, calc(100vw - 48px))}
-
-    /* 서약 그리드 PC 확장 — 5열(20칸) 구조 */
-    .cm-body .pact-grid{max-width:640px;margin:0 auto;gap:8px}
-    .cm-body .pact-slot{min-height:92px}
-    .cm-body .pact-slot .ps-img{width:44px;height:44px}
-
-    /* 모바일 전용 gear placeholder 3열 제한은 해제 — 4열 유지 */
-    .gear-grid{grid-template-columns:repeat(6,1fr)}
-
-    /* 기록 탭 캐릭 그리드: 2열로 배치 */
-    #pactCharList{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-    #pactCharList > *{margin-bottom:0 !important}
-
-    /* 갱신기 char-list도 2열 */
-    #list{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
-  }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="container">
 
-  <!-- ── 탭 네비 ── -->
-  <div class="tab-bar">
-    <div class="tabs">
-      <button class="tab" id="tab-refresh" onclick="switchTab('refresh')">⚡ 갱신기</button>
-      <button class="tab" id="tab-history" onclick="switchTab('history')">📜 기록</button>
-      <button class="tab" id="tab-soul"    onclick="switchTab('soul')">💎 계시 환산기</button>
-    </div>
-    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="테마 변경">🌙</button>
-  </div>
+<!-- SVG icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18"/><path d="m12 21 3-12-3-6-3 6 3 12"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7l3 3"/><path d="M21 4v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7l-3-3"/><path d="M3 20v-5h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 9v6l-4-2v-4z"/></symbol>
+    <symbol id="i-sword" viewBox="0 0 24 24"><path d="m14 4 6 6-3 3-2-2-7 7H4v-4l7-7-2-2z"/></symbol>
+    <symbol id="i-pact" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></symbol>
+    <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  </defs>
+</svg>
 
-  <!-- ══════════════════════════════════
-       TAB 1: 던담 일괄 갱신기
-  ══════════════════════════════════ -->
-  <div id="pane-refresh">
-    <div class="pane-header">
-      <h1 class="h-refresh">⚡ 던담 일괄 갱신기</h1>
-      <p class="sub">모험단 검색 → 캐릭 선택 → 한번에 갱신</p>
-    </div>
+<div class="app">
 
-    <div class="search">
-      <input type="text" id="name" placeholder="모험단명" maxlength="20">
-      <button id="searchBtn" onclick="doSearch()">검색</button>
-    </div>
-
-    <!-- 최근 검색 -->
-    <div class="recent-wrap">
-      <div class="recent-list" id="recentList"></div>
-    </div>
-
-    <div class="controls" id="controls">
-      <div class="ctrl-left">
-        <button onclick="selectAll()">전체 선택</button>
-        <button onclick="selectNone()">전체 해제</button>
-        <span class="ctrl-count" id="count"></span>
-      </div>
-      <button class="go-btn" id="goBtn" onclick="doRefresh()">선택 갱신</button>
-    </div>
-
-    <div class="progress" id="progress"><div class="progress-fill" id="progressFill"></div></div>
-
-    <div class="char-list" id="list">
-      <div class="empty">
-        <div class="emoji">🔍</div>
-        모험단을 검색하면 캐릭터 목록이 표시됩니다
+  <!-- ── SIDEBAR ── -->
+  <aside class="side">
+    <div class="side-brand">
+      <div class="side-brand-mark">⚡</div>
+      <div class="side-brand-text">
+        DF Console
+        <small>v2 redesign</small>
       </div>
     </div>
 
-    <div class="log" id="log"></div>
-  </div>
+    <div class="side-section-label">유틸리티</div>
+    <nav class="side-nav">
+      <button class="nav-btn active" data-tab="refresh">
+        <span class="nav-ico"><svg class="ico"><use href="#i-bolt"/></svg></span>
+        <span>일괄 갱신기</span>
+        <span class="nav-count" id="navCountRefresh">8</span>
+      </button>
+      <button class="nav-btn" data-tab="history">
+        <span class="nav-ico"><svg class="ico"><use href="#i-history"/></svg></span>
+        <span>드랍 기록</span>
+        <span class="nav-count" id="navCountHistory">84</span>
+      </button>
+      <button class="nav-btn" data-tab="soul">
+        <span class="nav-ico"><svg class="ico"><use href="#i-gem"/></svg></span>
+        <span>계시 환산기</span>
+      </button>
+    </nav>
 
-  <!-- ══════════════════════════════════
-       TAB 2: 종말의 계시 환산기
-  ══════════════════════════════════ -->
-  <div id="pane-soul" style="display:none">
-    <div class="pane-header">
-      <div class="soul-header-row">
-        <h1 class="h-soul">💎 종말의 계시 환산기</h1>
-        <button class="soul-refresh" id="soulRefreshBtn" onclick="soulLoad()" title="새로고침"><span>↺</span></button>
+    <div class="side-section-label" style="margin-top:18px">레거시</div>
+    <nav class="side-nav">
+      <a class="nav-btn" href="legacy.html" title="이전 버전 일괄 갱신기 (구 디자인)">
+        <span class="nav-ico"><svg class="ico"><use href="#i-history"/></svg></span>
+        <span>이전 버전</span>
+        <span class="nav-count" style="color:var(--text-4);background:none;border:none">old</span>
+      </a>
+    </nav>
+
+    <div class="side-foot">
+      <div class="side-foot-row">
+        <svg class="ico sm"><use href="#i-refresh"/></svg>
+        <span>최근 동기화 · <span id="lastSync">방금</span></span>
       </div>
-      <div class="soul-meta">
-        <span class="soul-ts" id="soulTs">불러오는 중...</span>
+      <button class="btn ghost" id="themeBtn" title="테마 변경" style="justify-content:flex-start;gap:8px">
+        <svg class="ico"><use href="#i-moon"/></svg>
+        <span id="themeLbl">다크 모드</span>
+      </button>
+      <button class="btn ghost" id="tweaksBtn" title="설정" style="justify-content:flex-start;gap:8px">
+        <svg class="ico"><use href="#i-cog"/></svg>
+        <span>설정</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-crumb">DF Console</div>
+      <h2 class="topbar-title" id="pageCrumb">일괄 갱신기</h2>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-actions">
+        <span class="badge" id="advTag">
+          <svg class="ico sm" style="color:var(--accent)"><use href="#i-bolt"/></svg>
+          <span id="advTagName">별빛모험단</span>
+          <span style="color:var(--text-4)">·</span>
+          <span id="advTagServer" style="color:var(--text-3);font-weight:600">카시야스</span>
+        </span>
       </div>
-    </div>
+    </header>
 
-    <div id="soulApp" class="soul-app">
-      <div class="s-loading"><div class="s-spin">⏳</div><div>데이터 불러오는 중...</div></div>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════
-       TAB 3: 기록 (장비 / 서약 서브탭)
-  ══════════════════════════════════ -->
-  <div id="pane-history" style="display:none">
-    <div class="pane-header">
-      <h1 class="h-history">📜 기록</h1>
-      <p class="sub">장비와 서약 파밍 내역을 한눈에</p>
-    </div>
-
-    <!-- ── 공유: 모험단 등록/갱신 ── -->
-    <div class="search">
-      <input type="text" id="pactAdventure" placeholder="모험단명" maxlength="20">
-      <button onclick="pactRegister()">등록/갱신</button>
-    </div>
-
-    <div class="controls" id="pactControls" style="display:none">
-      <div class="ctrl-left">
-        <button onclick="pactSyncAll()">전체 캐릭 갱신</button>
-        <span class="ctrl-count" id="pactCount"></span>
-      </div>
-    </div>
-
-    <div class="progress" id="pactProgress"><div class="progress-fill" id="pactProgressFill"></div></div>
-
-    <div id="pactCharList" class="char-list" style="margin-bottom:18px"></div>
-
-    <!-- 서브탭 -->
-    <div class="subtabs">
-      <button class="subtab" id="subtab-gear" onclick="switchHistorySub('gear')">⚔️ 장비</button>
-      <button class="subtab" id="subtab-pact" onclick="switchHistorySub('pact')">🔮 서약</button>
-    </div>
-
-    <!-- ── 서브탭 1: 장비 (개발 예정) ── -->
-    <div id="subpane-gear" style="display:none">
-      <div class="gear-ph">
-        <div class="gear-ph-title">⚒️ 장비 파밍 기록</div>
-        <div class="gear-ph-sub">
-          태초/에픽 12부위 드랍이 이 자리에 채워질 예정입니다.<br>
-          지금은 대장장이가 화로를 달구는 중 …
-        </div>
-        <div class="gear-grid">
-          <div class="gear-slot"><span class="gear-emoji">🪖</span><span class="gear-lbl">머리어깨</span></div>
-          <div class="gear-slot"><span class="gear-emoji">👕</span><span class="gear-lbl">상의</span></div>
-          <div class="gear-slot"><span class="gear-emoji">👖</span><span class="gear-lbl">하의</span></div>
-          <div class="gear-slot"><span class="gear-emoji">🎗️</span><span class="gear-lbl">벨트</span></div>
-          <div class="gear-slot"><span class="gear-emoji">👟</span><span class="gear-lbl">신발</span></div>
-          <div class="gear-slot"><span class="gear-emoji">📿</span><span class="gear-lbl">목걸이</span></div>
-          <div class="gear-slot"><span class="gear-emoji">⌚</span><span class="gear-lbl">팔찌</span></div>
-          <div class="gear-slot"><span class="gear-emoji">💍</span><span class="gear-lbl">반지</span></div>
-          <div class="gear-slot"><span class="gear-emoji">🎧</span><span class="gear-lbl">귀걸이</span></div>
-          <div class="gear-slot"><span class="gear-emoji">✨</span><span class="gear-lbl">마법석</span></div>
-          <div class="gear-slot"><span class="gear-emoji">🎐</span><span class="gear-lbl">보조장비</span></div>
-          <div class="gear-slot"><span class="gear-emoji">⚔️</span><span class="gear-lbl">무기</span></div>
-        </div>
-        <div class="gear-ph-footer"><span class="blink">🚧</span> 개발 진행 중 · 곧 만나요 <span class="blink">🚧</span></div>
-      </div>
-    </div>
-
-    <!-- ── 서브탭 2: 서약 (기존 pact-gear + pact-soul 통합) ── -->
-    <div id="subpane-pact" style="display:none">
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;flex-wrap:wrap">
-        <label style="font-size:12px">종류
-          <select id="pactCategory" onchange="pactRenderFiltered()" style="padding:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px">
-            <option value="pact,soul">전체</option>
-            <option value="pact">서약만</option>
-            <option value="soul">서약결정만</option>
-          </select>
-        </label>
-        <label style="font-size:12px">등급
-          <select id="pactRarity" onchange="pactRenderFiltered()" style="padding:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px">
-            <option value="태초,에픽">태초+에픽</option>
-            <option value="태초">태초만</option>
-            <option value="에픽">에픽만</option>
-          </select>
-        </label>
-      </div>
-
-      <div id="pactStats" style="display:none;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
-        <div style="font-weight:700;margin-bottom:8px">획득 통계</div>
-        <div id="pactStatsBody" style="font-size:13px;line-height:1.8"></div>
-      </div>
-
-      <div id="pactEvents" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-        <div class="empty" style="padding:30px;text-align:center">
-          <div class="emoji">🔮</div>
-          모험단을 등록하고 캐릭을 갱신하면 획득 내역이 여기 표시됩니다
+    <!-- ══════════ TAB: REFRESHER ══════════ -->
+    <section class="page" id="pane-refresh">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">일괄 갱신기</h1>
+          <p class="page-sub">모험단 검색 → 캐릭 선택 → 던담 데이터 한번에 갱신</p>
         </div>
       </div>
-    </div>
 
-    <div class="log" id="pactLog"></div>
-  </div>
-
-  <!-- ══════════════════════════════════
-       캐릭터 상세 모달
-  ══════════════════════════════════ -->
-  <div class="modal-backdrop" id="charModalBackdrop" style="display:none" onclick="closeCharModal()"></div>
-  <div class="char-modal" id="charModal" style="display:none" role="dialog" aria-modal="true">
-    <div class="cm-head">
-      <div class="cm-avatar" id="cmAvatar">
-        <svg viewBox="0 0 24 24" fill="currentColor" style="width:26px;height:26px;opacity:.4"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"/></svg>
+      <!-- Stats strip -->
+      <div class="stat-strip" id="refreshStats">
+        <!-- populated -->
       </div>
-      <div class="cm-head-info">
-        <div class="cm-name"><span id="cmName"></span><span class="cm-server" id="cmServer"></span></div>
-        <div class="cm-meta" id="cmMeta"></div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="segmented" id="viewModeSeg" title="보기 형식">
+          <button class="seg active" data-view="grid" title="카드 그리드">▦</button>
+          <button class="seg" data-view="row" title="리스트 행">☰</button>
+        </div>
+        <span class="toolbar-divider"></span>
+        <div class="search-wrap">
+          <svg class="ico" style="color:var(--text-3)"><use href="#i-search"/></svg>
+          <input type="text" id="advName" placeholder="모험단명 입력 후 Enter…" maxlength="12">
+        </div>
+        <button class="btn primary" id="searchBtn">검색</button>
+        <span class="toolbar-divider"></span>
+        <button class="btn" id="selectAllBtn">전체 선택</button>
+        <button class="btn ghost sm" id="selectNoneBtn">해제</button>
+        <span class="toolbar-divider"></span>
+        <span class="num" id="selCount" style="color:var(--text-3);font-size:12px;font-weight:600;padding:0 4px">0 / 0 선택</span>
+        <button class="btn primary" id="refreshGoBtn">
+          <svg class="ico sm"><use href="#i-refresh"/></svg>
+          <span>선택 갱신</span>
+        </button>
+        <button class="btn ghost sm" id="demoBtn" title="실제 갱신 없이 가짜 명성 변동값을 입혀 갱신된 상태처럼 보여줍니다 (디자인 검토용)" style="display:none">
+          <span style="font-size:11px">🔮 데모 갱신</span>
+        </button>
       </div>
-      <button class="cm-close" onclick="closeCharModal()" aria-label="닫기">×</button>
+
+      <!-- Recent searches -->
+      <div class="recent-row" id="recentRow" style="display:none">
+        <span class="recent-label">최근</span>
+      </div>
+
+      <div class="progress-bar" id="progBar"><div class="pfill" id="progFill"></div></div>
+
+      <!-- Character grid -->
+      <div class="char-grid" id="charGrid"></div>
+      <div class="char-rows" id="charRows" style="display:none"></div>
+
+      <!-- Log -->
+      <div class="log-panel" id="logPanel" style="display:none">
+        <div class="log-panel-head">
+          <svg class="ico sm"><use href="#i-bolt"/></svg>
+          실행 로그
+        </div>
+        <div class="log-panel-body" id="logBody"></div>
+      </div>
+    </section>
+
+    <!-- ══════════ TAB: HISTORY ══════════ -->
+    <section class="page" id="pane-history" style="display:none">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">드랍 기록</h1>
+          <p class="page-sub">서약·결정·장비 파밍 내역을 한 눈에</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="segmented" id="historySub">
+            <button class="seg active" data-sub="gear"><svg class="ico sm"><use href="#i-sword"/></svg>&nbsp;장비</button>
+            <button class="seg" data-sub="pact"><svg class="ico sm"><use href="#i-pact"/></svg>&nbsp;서약·결정</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stat-strip" id="historyStats"></div>
+
+      <!-- Subpane: GEAR (new design — matrix) -->
+      <div id="subpane-gear">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="ico" style="color:var(--text-3)"><use href="#i-filter"/></svg>
+            <span style="font-size:12px;color:var(--text-3);font-weight:600">필터:</span>
+            <span style="flex:1"></span>
+          </div>
+          <div class="segmented">
+            <button class="seg active" data-gear-rarity="all">전체</button>
+            <button class="seg" data-gear-rarity="taecho">태초만</button>
+            <button class="seg" data-gear-rarity="epic">에픽만</button>
+          </div>
+          <span class="toolbar-divider"></span>
+          <button class="btn">
+            <svg class="ico sm"><use href="#i-eye"/></svg>
+            <span>전체 펼치기</span>
+          </button>
+        </div>
+
+        <div class="matrix-wrap">
+          <div class="matrix" id="gearMatrix"></div>
+        </div>
+
+        <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:12px;font-size:11px;color:var(--text-3)">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="width:10px;height:10px;border-radius:3px;background:oklch(from var(--r-taecho) l c h / 0.4);border:1px solid var(--r-taecho)"></span>
+            태초
+          </span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="width:10px;height:10px;border-radius:3px;background:oklch(from var(--r-epic) l c h / 0.4);border:1px solid var(--r-epic)"></span>
+            에픽
+          </span>
+        </div>
+      </div>
+
+      <!-- Subpane: PACT (table) -->
+      <div id="subpane-pact" style="display:none">
+        <div class="toolbar">
+          <div class="search-wrap">
+            <svg class="ico" style="color:var(--text-3)"><use href="#i-search"/></svg>
+            <input type="text" id="pactSearch" placeholder="아이템·캐릭·던전 검색…">
+          </div>
+          <span class="toolbar-divider"></span>
+          <div class="segmented" id="pactCatSeg">
+            <button class="seg active" data-cat="all">전체</button>
+            <button class="seg" data-cat="pact">서약</button>
+            <button class="seg" data-cat="soul">결정</button>
+          </div>
+          <div class="segmented" id="pactRaritySeg">
+            <button class="seg active" data-rarity="all">전체</button>
+            <button class="seg" data-rarity="태초">태초</button>
+            <button class="seg" data-rarity="에픽">에픽</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="data-table" id="pactTable">
+              <thead>
+                <tr>
+                  <th>시각</th>
+                  <th>캐릭</th>
+                  <th>아이템</th>
+                  <th>등급</th>
+                  <th>경로</th>
+                  <th>채널</th>
+                  <th>던전</th>
+                </tr>
+              </thead>
+              <tbody id="pactTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ TAB: SOUL ══════════ -->
+    <section class="page page-narrow" id="pane-soul" style="display:none">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">계시 환산기</h1>
+          <p class="page-sub">결정·아이템 시세 환산</p>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="soulTs" style="font-size:11px;color:var(--text-3)">불러오는 중…</span>
+          <button class="btn icon" id="soulRefreshBtn" title="새로고침">
+            <svg class="ico"><use href="#i-refresh"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="soul-meta-row">
+        <span>기준:</span>
+        <span class="basis" id="soulBasis">—</span>
+        <span style="margin-left:auto;color:var(--text-4);font-size:11px">클릭하면 상세 펼침</span>
+      </div>
+
+      <div class="soul-grid" id="soulGrid"></div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head">
+          <div class="card-title">주화 경매 입찰 한계가</div>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-3)">낙찰금 22.5% 환급 · 100만G 시작 5% 상승</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="data-table bid-table">
+            <thead>
+              <tr>
+                <th class="col-item">품목</th>
+                <th class="col-limit">가치</th>
+                <th class="col-next">마지막 입찰가</th>
+                <th class="col-meta">분배 / 실지출</th>
+              </tr>
+            </thead>
+            <tbody id="bidBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── Modal — character detail ── -->
+<div class="modal-backdrop" id="modalBackdrop" style="display:none"></div>
+<div class="modal" id="modal" style="display:none">
+  <div class="modal-head">
+    <div class="avatar lg" id="modalAvatar"></div>
+    <div class="modal-head-info">
+      <div class="name">
+        <span id="modalName"></span>
+        <span class="badge" id="modalServer"></span>
+      </div>
+      <div class="meta">
+        <span id="modalJob"></span>
+        <span class="dot">·</span>
+        <span id="modalLevel"></span>
+        <span class="dot">·</span>
+        <span id="modalAdv">별빛모험단</span>
+      </div>
     </div>
-    <div class="cm-subtabs">
-      <button class="cm-subtab" id="cmtab-summary"  onclick="switchCharTab('summary')">📊 요약</button>
-      <button class="cm-subtab" id="cmtab-gear"     onclick="switchCharTab('gear')">⚔️ 장비</button>
-      <button class="cm-subtab" id="cmtab-pact"     onclick="switchCharTab('pact')">🔮 서약</button>
-      <button class="cm-subtab" id="cmtab-timeline" onclick="switchCharTab('timeline')">🕘 타임라인</button>
+    <div class="modal-head-fame">
+      <span class="label">명성</span>
+      <span class="value" id="modalFame"></span>
     </div>
-    <div class="cm-body">
-      <div id="cmpane-summary"  style="display:none"></div>
-      <div id="cmpane-gear"     style="display:none"></div>
-      <div id="cmpane-pact"     style="display:none"></div>
-      <div id="cmpane-timeline" style="display:none"></div>
-    </div>
+    <button class="modal-close" id="modalCloseBtn"><svg class="ico"><use href="#i-x"/></svg></button>
   </div>
+  <div class="modal-tabs" id="modalTabs">
+    <button class="modal-tab active" data-mtab="summary">요약</button>
+    <button class="modal-tab" data-mtab="gear">⚔ 장비</button>
+    <button class="modal-tab" data-mtab="pact">🔮 서약</button>
+    <button class="modal-tab" data-mtab="timeline">🕘 타임라인</button>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+</div>
 
-  <div class="toast" id="toast"><span class="t-spin">⏳</span><span id="toastMsg">불러오는 중...</span></div>
-
-  <div class="footer">
-    던파 유틸 · <a href="https://dundam.xyz" target="_blank">dundam.xyz</a> 비공식
+<!-- ── Tweaks panel ── -->
+<div class="tweaks-pop" id="tweaksPop">
+  <div class="tweaks-head">
+    <span class="tweaks-head-title">Tweaks</span>
+    <button class="btn icon ghost sm" id="tweaksCloseBtn"><svg class="ico sm"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="tweaks-body">
+    <div class="tweaks-row">
+      <span class="tlbl">액센트 컬러</span>
+      <span class="tsub">버튼·하이라이트에 쓰이는 단일 액센트</span>
+      <div class="swatch-row" id="accentRow">
+        <div class="swatch active" data-accent="amber"  style="background:oklch(0.78 0.15 65)"></div>
+        <div class="swatch" data-accent="emerald"      style="background:oklch(0.74 0.17 148)"></div>
+        <div class="swatch" data-accent="azure"        style="background:oklch(0.72 0.18 240)"></div>
+        <div class="swatch" data-accent="violet"       style="background:oklch(0.72 0.20 295)"></div>
+        <div class="swatch" data-accent="coral"        style="background:oklch(0.72 0.18 25)"></div>
+      </div>
+    </div>
+    <div class="tweaks-row">
+      <span class="tlbl">밀도</span>
+      <div class="segmented">
+        <button class="seg active" data-density="comfortable">기본</button>
+        <button class="seg" data-density="compact">조밀</button>
+      </div>
+    </div>
+    <div class="tweaks-row">
+      <span class="tlbl">테마</span>
+      <div class="segmented">
+        <button class="seg active" data-theme-opt="dark">다크</button>
+        <button class="seg" data-theme-opt="light">라이트</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<script>
-// ════════════════════════════════════
-//  테마 토글
-// ════════════════════════════════════
-(function() {
-  const saved = localStorage.getItem('dundam_theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
-  });
-})();
+<script src="api.js"></script>
+<script src="app.js"></script>
 
-function toggleTheme() {
-  const html = document.documentElement;
-  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', next);
-  localStorage.setItem('dundam_theme', next);
-  document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
-}
-
-// ════════════════════════════════════
-//  탭 전환
-// ════════════════════════════════════
-const HISTORY_SUB_KEY = 'history_sub';
-let historySub = localStorage.getItem(HISTORY_SUB_KEY) || 'pact';
-
-function switchTab(t) {
-  document.getElementById('pane-refresh').style.display = t === 'refresh' ? '' : 'none';
-  document.getElementById('pane-soul').style.display    = t === 'soul'    ? '' : 'none';
-  document.getElementById('pane-history').style.display = t === 'history' ? '' : 'none';
-  document.getElementById('tab-refresh').classList.toggle('active', t === 'refresh');
-  document.getElementById('tab-soul').classList.toggle('active',    t === 'soul');
-  document.getElementById('tab-history').classList.toggle('active', t === 'history');
-  location.hash = t === 'refresh' ? '' : (t === 'history' ? `history/${historySub}` : t);
-  if (t === 'soul' && !soulLoaded) soulLoad();
-  if (t === 'history') switchHistorySub(historySub, /*fromTab*/true);
-}
-
-function switchHistorySub(sub, fromTab) {
-  historySub = sub;
-  localStorage.setItem(HISTORY_SUB_KEY, sub);
-  document.getElementById('subpane-gear').style.display = sub === 'gear' ? '' : 'none';
-  document.getElementById('subpane-pact').style.display = sub === 'pact' ? '' : 'none';
-  document.getElementById('subtab-gear').classList.toggle('active', sub === 'gear');
-  document.getElementById('subtab-pact').classList.toggle('active', sub === 'pact');
-  if (!fromTab) location.hash = `history/${sub}`;
-  if (sub === 'pact') {
-    pactRestore();
-    pactLoadEvents();
-  }
-}
-
-let soulLoaded = false;
-
-// ════════════════════════════════════
-//  TAB 3: 서약 내역
-// ════════════════════════════════════
-const PACT_STATE = { adventureName: null, characters: [], allRows: null };
-
-const PACT_SERVER_KR = {
-  cain:'카인', diregie:'디레지에', siroco:'시로코', prey:'프레이',
-  casillas:'카시야스', hilder:'힐더', anton:'안톤', bakal:'바칼',
-};
-
-function pactSave() {
-  localStorage.setItem('pact_state', JSON.stringify({
-    adventureName: PACT_STATE.adventureName,
-    characters: PACT_STATE.characters,
-  }));
-}
-function pactRestore() {
-  try {
-    const s = JSON.parse(localStorage.getItem('pact_state') || '{}');
-    if (s.adventureName) {
-      document.getElementById('pactAdventure').value = s.adventureName;
-      if (!PACT_STATE.adventureName) {
-        PACT_STATE.adventureName = s.adventureName;
-        PACT_STATE.characters    = s.characters || [];
-        if (PACT_STATE.characters.length) pactRenderCharList();
-      }
-    }
-  } catch {}
-}
-
-function pactLog(msg) {
-  const el = document.getElementById('pactLog');
-  const ts = new Date().toLocaleTimeString('ko-KR');
-  el.innerHTML += `<div>[${ts}] ${msg}</div>`;
-  el.scrollTop = el.scrollHeight;
-}
-
-async function pactRegister() {
-  const adventureName = document.getElementById('pactAdventure').value.trim();
-  if (!adventureName) return alert('모험단명을 입력하세요');
-
-  pactLog(`${adventureName} 등록 시도…`);
-  try {
-    const res = await fetch('/api/adventure-register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adventureName }),
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || res.statusText);
-
-    PACT_STATE.adventureName = adventureName;
-    PACT_STATE.characters    = json.characters;
-    pactSave();
-    const svList = (json.servers || []).map(s => PACT_SERVER_KR[s] || s).join(', ');
-    pactLog(`✓ ${json.characterCount}명 등록됨 (${svList})`);
-    pactRenderCharList();
-    pactLoadEvents();
-  } catch (e) {
-    pactLog(`✗ 등록 실패: ${e.message}`);
-    alert('등록 실패: ' + e.message);
-  }
-}
-
-function pactRenderCharList() {
-  const box = document.getElementById('pactCharList');
-  document.getElementById('pactControls').style.display = '';
-  document.getElementById('pactCount').textContent = `${PACT_STATE.characters.length}명`;
-  box.innerHTML = PACT_STATE.characters.map(c => {
-    const svKr = PACT_SERVER_KR[c.serverId] || c.serverId || '';
-    return `
-    <div class="char-row" onclick="openCharModalById('${c.characterId}')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--char-hover)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="flex:1">
-        <div style="font-weight:700">${escapeHtml(c.characterName)} <span style="font-weight:400;font-size:11px;color:var(--muted)">[${escapeHtml(svKr)}]</span></div>
-        <div style="font-size:11px;color:var(--muted)">${escapeHtml(c.jobGrowName || '')} · 명성 ${c.fame ?? '-'}</div>
-      </div>
-      <button onclick="event.stopPropagation();pactSyncOne('${c.characterId}', this)">갱신</button>
-    </div>`;
-  }).join('');
-}
-
-async function pactSyncOne(characterId, btn) {
-  if (btn) { btn.disabled = true; btn.textContent = '갱신 중…'; }
-  try {
-    const res = await fetch('/api/character-sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ characterId }),
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || res.statusText);
-    pactLog(`✓ ${json.characterName}: 신규 ${json.insertedCount}건 / 조회 ${json.fetchedEventCount}건`);
-    if (btn) btn.textContent = '✓ ' + json.insertedCount;
-  } catch (e) {
-    pactLog(`✗ 갱신 실패 (${characterId}): ${e.message}`);
-    if (btn) btn.textContent = '재시도';
-  } finally {
-    if (btn) btn.disabled = false;
-    pactLoadEvents();
-  }
-}
-
-async function pactSyncAll() {
-  const fill = document.getElementById('pactProgressFill');
-  const total = PACT_STATE.characters.length;
-  let done = 0;
-  for (const c of PACT_STATE.characters) {
-    await pactSyncOne(c.characterId);
-    done++;
-    fill.style.width = Math.round(done * 100 / total) + '%';
-  }
-  setTimeout(() => { fill.style.width = '0%'; }, 1500);
-}
-
-async function pactLoadEvents() {
-  if (!PACT_STATE.adventureName) return;
-  // 항상 전체 범위로 한 번만 조회. 필터는 클라이언트에서 처리.
-  const qs = new URLSearchParams({
-    adventureName: PACT_STATE.adventureName,
-    rarity: '태초,에픽',
-    category: 'pact,soul',
-  });
-  const res = await fetch(`/api/events?${qs}`);
-  const json = await res.json();
-  if (!res.ok) return pactLog(`✗ 조회 실패: ${json.error}`);
-  PACT_STATE.allRows = json.rows;
-  pactRenderFiltered();
-}
-
-const PATH_LABEL = {550:'드랍',551:'레이드',552:'항아리',554:'제작',557:'카드'};
-function pathLabelCode(code) { return PATH_LABEL[code] || `code ${code}`; }
-
-function pactRenderFiltered() {
-  if (!PACT_STATE.allRows) return;
-  const rarities   = document.getElementById('pactRarity').value.split(',');
-  const categories = document.getElementById('pactCategory').value.split(',');
-  const rows = PACT_STATE.allRows.filter(r =>
-    rarities.includes(r.item_rarity) && categories.includes(r.item_category)
-  );
-  const byChannel = {};
-  const byCode = {};
-  for (const r of rows) {
-    if (r.channel_name) byChannel[r.channel_name] = (byChannel[r.channel_name] ?? 0) + 1;
-    const label = pathLabelCode(r.event_code);
-    byCode[label] = (byCode[label] ?? 0) + 1;
-  }
-  pactRenderEvents({ rows, stats: { byChannel, byCode } });
-}
-
-function pactRenderEvents({ rows, stats }) {
-  const box = document.getElementById('pactEvents');
-  if (!rows.length) {
-    box.innerHTML = `<div class="empty" style="padding:30px;text-align:center"><div class="emoji">📭</div>조건에 맞는 획득 내역이 없습니다</div>`;
-    document.getElementById('pactStats').style.display = 'none';
-    return;
-  }
-
-  const statsBox = document.getElementById('pactStats');
-  const statsBody = document.getElementById('pactStatsBody');
-  const byCh = Object.entries(stats.byChannel).sort((a,b) => b[1] - a[1]);
-  const byCode = Object.entries(stats.byCode).sort((a,b) => b[1] - a[1]);
-  statsBody.innerHTML = `
-    <div><b>총 ${rows.length}건</b></div>
-    <div>경로: ${byCode.map(([k,v]) => `${k} ${v}`).join(' / ')}</div>
-    ${byCh.length ? `<div>채널: ${byCh.slice(0, 10).map(([k,v]) => `${k} ${v}`).join(' / ')}${byCh.length > 10 ? ' …' : ''}</div>` : ''}
-  `;
-  statsBox.style.display = '';
-
-  const pathLabel = pathLabelCode;
-  const rarityColor = r => r === '태초' ? '#4caf50' : r === '에픽' ? '#ffb300' : '#888';
-  const cell = 'padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;word-break:keep-all';
-  const html = [`
-    <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:720px">
-      <thead>
-        <tr style="background:var(--tab-bg);font-weight:700;text-align:left">
-          <th style="${cell}">시각</th>
-          <th style="${cell}">캐릭</th>
-          <th style="${cell}">서버</th>
-          <th style="${cell};white-space:normal;min-width:180px">아이템</th>
-          <th style="${cell}">등급</th>
-          <th style="${cell}">경로</th>
-          <th style="${cell}">채널</th>
-          <th style="${cell}">던전</th>
-        </tr>
-      </thead>
-      <tbody>
-  `];
-  const catChip = c => c === 'soul'
-    ? '<span class="cat-chip soul">결정</span>'
-    : '<span class="cat-chip pact">서약</span>';
-  for (const r of rows) {
-    const when = new Date(r.occurred_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-    const svKr = PACT_SERVER_KR[r.server_id] || r.server_id || '-';
-    html.push(`
-      <tr>
-        <td style="${cell};color:var(--muted)">${when}</td>
-        <td style="${cell};font-weight:600">${escapeHtml(r.character_name)}</td>
-        <td style="${cell};color:var(--muted)">${escapeHtml(svKr)}</td>
-        <td style="${cell};white-space:normal">${catChip(r.item_category)}${escapeHtml(r.item_name)}</td>
-        <td style="${cell};color:${rarityColor(r.item_rarity)};font-weight:700">${r.item_rarity}</td>
-        <td style="${cell}">${pathLabel(r.event_code)}</td>
-        <td style="${cell}">${r.channel_name ? `${escapeHtml(r.channel_name)}${r.channel_no ? '-' + r.channel_no : ''}` : '-'}</td>
-        <td style="${cell}">${r.dungeon_name ? escapeHtml(r.dungeon_name) : '-'}</td>
-      </tr>
-    `);
-  }
-  html.push('</tbody></table></div>');
-  box.innerHTML = html.join('');
-}
-
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ════════════════════════════════════
-//  캐릭터 상세 모달
-// ════════════════════════════════════
-const CHAR_MODAL = { char: null, detail: null, tab: 'gear' };
-
-// 장비 페이퍼돌 5열×4행 (사용자 지정 배치)
-// 좌 2열: 방어구 5 + 빈칸 3 / 우 2열: 무기·칭호·보조·액세 7
-const EQ_SLOT_ORDER = [
-  'SHOULDER', 'JACKET', 'PANTS', 'WAIST', 'SHOES',
-  'WEAPON', 'TITLE', 'WRIST', 'AMULET', 'SUPPORT', 'RING', 'EARRING', 'MAGIC_STONE',
-];
-const EQ_SLOT_LBL = {
-  SHOULDER:'머리어깨', JACKET:'상의', PANTS:'하의', WAIST:'벨트', SHOES:'신발',
-  AMULET:'목걸이', WRIST:'팔찌', RING:'반지', EARRING:'귀걸이',
-  MAGIC_STONE:'마법석', SUPPORT:'보조장비', WEAPON:'무기', TITLE:'칭호',
-};
-
-function openCharModalById(characterId) {
-  const c = PACT_STATE.characters.find(x => x.characterId === characterId);
-  if (c) openCharModal(c);
-}
-
-async function openCharModal(c) {
-  CHAR_MODAL.char = c;
-  CHAR_MODAL.detail = null;
-  const bd = document.getElementById('charModalBackdrop');
-  const md = document.getElementById('charModal');
-  bd.style.display = ''; md.style.display = '';
-  requestAnimationFrame(() => { bd.classList.add('show'); md.classList.add('show'); });
-  document.body.classList.add('modal-open');
-
-  document.getElementById('cmName').textContent   = c.characterName;
-  document.getElementById('cmServer').textContent = PACT_SERVER_KR[c.serverId] || c.serverId || '';
-  document.getElementById('cmMeta').textContent   =
-    `${c.jobGrowName || '-'} · 명성 ${c.fame ?? '-'}`;
-
-  switchCharTab(CHAR_MODAL.tab);  // 초기 탭
-
-  // 상세 조회
-  try {
-    const qs = new URLSearchParams({ serverId: c.serverId, characterId: c.characterId });
-    const res = await fetch(`/api/character-detail?${qs}`);
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || res.statusText);
-    CHAR_MODAL.detail = json;
-    renderCharTab(CHAR_MODAL.tab);
-  } catch (e) {
-    const pane = document.getElementById(`cmpane-${CHAR_MODAL.tab}`);
-    pane.innerHTML = `<div class="cm-err">조회 실패: ${escapeHtml(e.message)}</div>`;
-  }
-}
-
-function closeCharModal() {
-  const bd = document.getElementById('charModalBackdrop');
-  const md = document.getElementById('charModal');
-  bd.classList.remove('show'); md.classList.remove('show');
-  document.body.classList.remove('modal-open');
-  setTimeout(() => { bd.style.display = 'none'; md.style.display = 'none'; }, 200);
-}
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && document.getElementById('charModal').classList.contains('show')) closeCharModal();
-});
-
-const CHAR_TABS = ['summary','gear','pact','timeline'];
-
-function switchCharTab(tab) {
-  CHAR_MODAL.tab = tab;
-  for (const t of CHAR_TABS) {
-    document.getElementById(`cmpane-${t}`).style.display = t === tab ? '' : 'none';
-    document.getElementById(`cmtab-${t}`).classList.toggle('active', t === tab);
-  }
-  renderCharTab(tab);
-}
-
-function renderCharTab(tab) {
-  const pane = document.getElementById(`cmpane-${tab}`);
-  if (!CHAR_MODAL.detail && tab !== 'timeline') {
-    pane.innerHTML = `<div class="cm-loading"><span class="t-spin">⏳</span> 불러오는 중...</div>`;
-    return;
-  }
-  if (tab === 'summary')  renderCharSummary(pane, CHAR_MODAL.detail);
-  if (tab === 'gear')     renderCharGear(pane, CHAR_MODAL.detail);
-  if (tab === 'pact')     renderCharPact(pane, CHAR_MODAL.detail);
-  if (tab === 'timeline') renderCharTimeline(pane);
-}
-
-// 서약 레이아웃 (5×4, row-major 20칸):
-// 1행: 에픽 · 빈 · 빈 · 빈 · 에픽
-// 2행: 에픽 · 빈 · 서약 · 빈 · 에픽
-// 3행: 에픽 · 빈 · 빈 · 빈 · 에픽
-// 4행: 에픽 · 태초 · 태초 · 태초 · 에픽
-const PACT_SLOT_META = [
-  { kind:'crystal' }, { kind:'gap' },    { kind:'gap' },     { kind:'gap' },    { kind:'crystal' },
-  { kind:'crystal' }, { kind:'gap' },    { kind:'main' },    { kind:'gap' },    { kind:'crystal' },
-  { kind:'crystal' }, { kind:'gap' },    { kind:'gap' },     { kind:'gap' },    { kind:'crystal' },
-  { kind:'crystal' }, { kind:'taecho' }, { kind:'taecho' },  { kind:'taecho' }, { kind:'crystal' },
-];
-
-function renderCharPact(pane, detail) {
-  const slots = PACT_SLOT_META.map(meta => {
-    if (meta.kind === 'gap') {
-      return `<div class="pact-slot pact-gap" aria-hidden="true"></div>`;
-    }
-    const cls = meta.kind === 'main'   ? 'pact-main'
-              : meta.kind === 'taecho' ? 'taecho-ok'
-              : '';
-    const lbl = meta.kind === 'main'   ? '서약'
-              : meta.kind === 'taecho' ? '결정'
-              : '결정';
-    return `<div class="pact-slot empty ${cls}">
-      <div class="ps-img"><span style="font-size:18px;opacity:.3">·</span></div>
-      <div class="ps-lbl">${lbl}</div>
-    </div>`;
-  }).join('');
-
-  pane.innerHTML = `
-    <div class="pact-grid">${slots}</div>
-    <div class="pact-legend">
-      <span class="lg main">서약(중앙)</span>
-      <span class="lg">에픽 결정 · 8칸 (좌우 4+4)</span>
-      <span class="lg taecho">태초 결정 · 3칸 (하단 중앙)</span>
-    </div>
-    <div style="margin-top:14px;padding:10px 12px;background:var(--tab-bg);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.5;text-align:center">
-      💡 현재는 슬롯 구조만 표시됩니다 — 착용 중인 서약/결정 데이터는 곧 추가됩니다
-    </div>
-  `;
-}
-
-function renderCharGear(pane, detail) {
-  const eq = detail.equipment ?? [];
-  if (detail.errors?.equipment) {
-    pane.innerHTML = `<div class="cm-err">장비 조회 실패: ${escapeHtml(detail.errors.equipment)}</div>`;
-    return;
-  }
-  const bySlot = {};
-  for (const e of eq) bySlot[e.slotId] = e;
-
-  const slotHtml = slot => {
-    const lbl = EQ_SLOT_LBL[slot];
-    const e = bySlot[slot];
-    if (!e) {
-      return `<div class="eq-slot empty" data-slot="${slot}">
-        <div class="eq-img"><span style="font-size:18px;opacity:.3">·</span></div>
-        <div class="eq-slot-lbl">${lbl}</div>
-        <div class="eq-meta">미장착</div>
-      </div>`;
-    }
-    const enchant = e.reinforce ? `<span class="eq-enchant">+${e.reinforce}</span>` : '';
-    const amp = e.amplificationName ? ` · <span class="eq-amp">${escapeHtml(e.amplificationName)}</span>` : '';
-    const img = e.itemId
-      ? `<img src="https://img-api.neople.co.kr/df/items/${encodeURIComponent(e.itemId)}" alt="" loading="lazy" onerror="this.style.display='none'">`
-      : '';
-    return `<div class="eq-slot r-${escapeHtml(e.itemRarity ?? '')}" data-slot="${slot}">
-      <div class="eq-img">${img}</div>
-      <div class="eq-slot-lbl">${lbl} ${enchant}</div>
-      <div class="eq-name">${escapeHtml(e.itemName ?? '')}</div>
-      <div class="eq-meta">${escapeHtml(e.itemRarity ?? '')}${amp}</div>
-    </div>`;
-  };
-
-  // PC(≥1024px)에서만 중앙 캐릭 카드 주입. CSS grid-area로 위치가 결정됨.
-  const c = CHAR_MODAL.char || {};
-  const b = detail?.basic || {};
-  const svKr = PACT_SERVER_KR[c.serverId] || c.serverId || '';
-  const avatar = c.characterId
-    ? `<img src="https://img-api.neople.co.kr/df/servers/${encodeURIComponent(c.serverId)}/characters/${encodeURIComponent(c.characterId)}?zoom=1" alt="" loading="lazy" onerror="this.style.display='none'">`
-    : '';
-  const centerCard = `<div class="eq-center-card">
-    <div class="ecc-avatar">${avatar}</div>
-    <div class="ecc-name">${escapeHtml(c.characterName || '')}</div>
-    <div class="ecc-job">${escapeHtml(c.jobGrowName || b.jobGrowName || '')} · ${escapeHtml(svKr)}</div>
-    <div class="ecc-fame">${Number(b.fame ?? c.fame ?? 0).toLocaleString('ko-KR')}</div>
-    <div class="ecc-fame-lbl">명성</div>
-  </div>`;
-
-  pane.innerHTML = `<div class="eq-layout">${EQ_SLOT_ORDER.map(slotHtml).join('')}${centerCard}<div class="eq-gap" style="grid-area:g1"></div><div class="eq-gap" style="grid-area:g2"></div><div class="eq-gap" style="grid-area:g3"></div><div class="eq-gap" style="grid-area:g4"></div></div>`;
-}
-
-function renderCharSummary(pane, detail) {
-  const b = detail.basic || {};
-  const s = detail.status || {};
-  const fame = b.fame ?? '-';
-  const adv  = b.adventureName ?? CHAR_MODAL.char?.adventureName ?? '-';
-  const guild = b.guildName || '-';
-  const level = b.level ?? '-';
-  const job = b.jobGrowName || CHAR_MODAL.char?.jobGrowName || '-';
-
-  const fmt = n => (n ?? n === 0) ? Number(n).toLocaleString('ko-KR') : '-';
-  const buffPow  = s.status?.find(x => x.name === '버프력')?.value;
-  const damInc   = s.status?.find(x => x.name === '데미지 증가')?.value;
-
-  pane.innerHTML = `
-    <div class="cm-summary">
-      <div class="cm-stat-grid">
-        <div class="cm-stat h"><div class="cm-stat-lbl">명성</div><div class="cm-stat-val">${fmt(fame)}</div></div>
-        <div class="cm-stat"><div class="cm-stat-lbl">레벨</div><div class="cm-stat-val">${level}</div></div>
-        <div class="cm-stat"><div class="cm-stat-lbl">직업</div><div class="cm-stat-val" style="font-size:13px">${escapeHtml(job)}</div></div>
-        <div class="cm-stat"><div class="cm-stat-lbl">모험단</div><div class="cm-stat-val" style="font-size:13px">${escapeHtml(adv)}</div></div>
-        <div class="cm-stat"><div class="cm-stat-lbl">길드</div><div class="cm-stat-val" style="font-size:13px">${escapeHtml(guild)}</div></div>
-        ${buffPow != null ? `<div class="cm-stat"><div class="cm-stat-lbl">버프력</div><div class="cm-stat-val">${fmt(buffPow)}</div></div>` : ''}
-        ${damInc  != null ? `<div class="cm-stat"><div class="cm-stat-lbl">데미지 증가</div><div class="cm-stat-val">${fmt(damInc)}</div></div>` : ''}
-      </div>
-    </div>
-  `;
-}
-
-async function renderCharTimeline(pane) {
-  const c = CHAR_MODAL.char;
-  if (!c) return;
-  pane.innerHTML = `<div class="cm-loading"><span class="t-spin">⏳</span> 불러오는 중...</div>`;
-  try {
-    const qs = new URLSearchParams({
-      characterId: c.characterId,
-      rarity: '태초,에픽',
-      category: 'pact,soul',
-      limit: '200',
-    });
-    const res = await fetch(`/api/events?${qs}`);
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || res.statusText);
-    const rows = json.rows || [];
-    if (!rows.length) {
-      pane.innerHTML = `<div class="empty" style="padding:30px 10px;text-align:center"><div class="emoji">📭</div>이 캐릭터의 획득 내역이 없습니다<div style="font-size:11px;margin-top:4px;color:var(--text4)">모달 닫고 갱신 버튼을 눌러보세요</div></div>`;
-      return;
-    }
-    const catChip = cat => cat === 'soul'
-      ? '<span class="cat-chip soul">결정</span>'
-      : '<span class="cat-chip pact">서약</span>';
-    const rarityColor = r => r === '태초' ? '#4caf50' : r === '에픽' ? '#ffb300' : '#888';
-    const cell = 'padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px';
-    const body = rows.map(r => {
-      const when = new Date(r.occurred_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-      return `<tr>
-        <td style="${cell};color:var(--text3);white-space:nowrap">${when}</td>
-        <td style="${cell}">${catChip(r.item_category)}${escapeHtml(r.item_name)}</td>
-        <td style="${cell};color:${rarityColor(r.item_rarity)};font-weight:700;white-space:nowrap">${r.item_rarity}</td>
-        <td style="${cell};color:var(--text4);white-space:nowrap">${pathLabelCode(r.event_code)}</td>
-      </tr>`;
-    }).join('');
-    pane.innerHTML = `
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">총 ${rows.length}건</div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
-        <thead><tr style="font-size:11px;color:var(--text3);text-align:left;background:var(--tab-bg)">
-          <th style="${cell}">시각</th><th style="${cell}">아이템</th><th style="${cell}">등급</th><th style="${cell}">경로</th>
-        </tr></thead>
-        <tbody>${body}</tbody>
-      </table></div>
-    `;
-  } catch (e) {
-    pane.innerHTML = `<div class="cm-err">조회 실패: ${escapeHtml(e.message)}</div>`;
-  }
-}
-
-// 페이지 로드 시 해시 복원 (PACT_STATE 등 선언 이후에 실행)
-(function() {
-  const h = location.hash.slice(1);
-  // 레거시 호환: pact / pact-gear / pact-soul → history/pact
-  if (h === 'pact' || h === 'pact-gear' || h === 'pact-soul') {
-    historySub = 'pact';
-    switchTab('history');
-    return;
-  }
-  if (h.startsWith('history')) {
-    const sub = h.split('/')[1];
-    if (sub === 'gear' || sub === 'pact') historySub = sub;
-    switchTab('history');
-    return;
-  }
-  switchTab(h === 'soul' ? 'soul' : 'refresh');
-})();
-
-// ════════════════════════════════════
-//  최근 검색 (localStorage)
-// ════════════════════════════════════
-const RECENT_KEY = 'dundam_recent';
-const RECENT_MAX = 10;
-
-function getRecent() {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }
-  catch { return []; }
-}
-function saveRecent(list) {
-  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
-}
-function addRecent(name) {
-  const list = getRecent().filter(v => v !== name);
-  list.unshift(name);
-  saveRecent(list.slice(0, RECENT_MAX));
-  renderRecent();
-}
-function delRecent(name, e) {
-  e.stopPropagation();
-  saveRecent(getRecent().filter(v => v !== name));
-  renderRecent();
-}
-function searchFrom(name) {
-  document.getElementById('name').value = name;
-  doSearch();
-}
-function renderRecent() {
-  const list = getRecent();
-  const el = document.getElementById('recentList');
-  if (!list.length) { el.innerHTML = ''; return; }
-  el.innerHTML = list.map(n =>
-    `<span class="recent-chip" onclick="searchFrom('${n.replace(/'/g,"\\'")}')">
-      ${n}
-      <button class="chip-del" onclick="delRecent('${n.replace(/'/g,"\\'")}',event)">×</button>
-    </span>`
-  ).join('');
-}
-renderRecent();
-
-// ════════════════════════════════════
-//  던담 일괄 갱신기
-// ════════════════════════════════════
-let chars = [];
-let selected = new Set();
-let busy = false;
-const $ = id => document.getElementById(id);
-
-function imgErr(el) {
-  el.style.display = 'none';
-  el.parentElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>`;
-}
-
-async function doSearch() {
-  const name = $('name').value.trim();
-  if (!name) return $('name').focus();
-
-  $('searchBtn').disabled = true;
-  $('searchBtn').textContent = '검색 중...';
-  $('controls').classList.remove('show');
-  $('log').classList.remove('show');
-  $('log').innerHTML = '';
-  $('list').innerHTML = '<div class="empty"><div class="emoji">⏳</div>검색 중...</div>';
-
-  try {
-    const res = await fetch(`/api/search?server=adven&name=${encodeURIComponent(name)}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    chars = (data.characters || []).map(c => ({
-      ...c,
-      avatarUrl: `https://img-api.neople.co.kr/df/servers/${c.server}/characters/${c.key}?zoom=1`,
-      _status: 'idle'
-    }));
-
-    if (!chars.length) {
-      $('list').innerHTML = '<div class="empty"><div class="emoji">😢</div>검색 결과가 없습니다</div>';
-    } else {
-      addRecent(name);
-      selected = new Set(chars.map((_, i) => i));
-      render();
-      $('controls').classList.add('show');
-      updateCount();
-    }
-  } catch (e) {
-    $('list').innerHTML = `<div class="empty"><div class="emoji">❌</div>검색 실패: ${e.message}</div>`;
-  }
-
-  $('searchBtn').disabled = false;
-  $('searchBtn').textContent = '검색';
-}
-
-function parseRankNum(v) {
-  if (v == null) return NaN;
-  const s = String(v).replace(/[^\d.]/g,'');
-  return s ? parseFloat(s) : NaN;
-}
-function renderRank(label, prev, cur) {
-  const curStr = cur ? `${label}${cur}` : '';
-  if (prev == null || prev === '') return curStr || '-';
-  if (prev === cur) return `${curStr}<span class="diff same">=</span>`;
-  const p = parseRankNum(prev), c = parseRankNum(cur);
-  let cls = 'same', icon = '≠';
-  if (!isNaN(p) && !isNaN(c)) {
-    if (c > p) { cls = 'up'; icon = '▲'; }
-    else if (c < p) { cls = 'down'; icon = '▼'; }
-    else { icon = '='; }
-  }
-  return `<span class="prev">${label}${prev}</span><span class="arrow">→</span><span class="cur">${curStr}</span><span class="diff ${cls}">${icon}</span>`;
-}
-
-function render() {
-  $('list').innerHTML = chars.map((c, i) => {
-    const on = selected.has(i);
-    const cls = ['char', on?'on':'', c._status==='loading'?'loading':'', c._status==='done'?'done':'', c._status==='error'?'error':''].filter(Boolean).join(' ');
-    const statusHtml = {loading:'<div class="status s-load">···</div>',done:'<div class="status s-done">✓</div>',error:'<div class="status s-err">✗</div>'}[c._status]||'<div class="status"></div>';
-    const isBuff = !!c.buffScore;
-    const curVal = isBuff ? c.buffScore : c.ozma;
-    const prevVal = isBuff ? c._prevBuffScore : c._prevOzma;
-    const label = isBuff ? '버프 ' : '';
-    const rankHtml = renderRank(label, prevVal, curVal);
-    return `<div class="${cls}" onclick="toggle(${i})">
-      <div class="chk">${on?'✓':''}</div>
-      <div class="avatar"><img src="${c.avatarUrl}" onerror="imgErr(this)"></div>
-      <div class="info">
-        <div class="info-name">${c.name}</div>
-        <div class="info-detail">${c.job} · 명성 ${c.fame.toLocaleString()}${c.cri?' · 크리 '+c.cri+'%':''}${c._refreshTime!=null?' · '+c._refreshTime+'분 전 갱신':''}</div>
-      </div>
-      <div class="rank${isBuff?' buff':''}">${rankHtml}</div>
-      ${statusHtml}
-    </div>`;
-  }).join('');
-}
-
-function toggle(i) { if(busy)return; selected.has(i)?selected.delete(i):selected.add(i); render(); updateCount(); }
-function selectAll()  { if(busy)return; chars.forEach((_,i)=>selected.add(i));  render(); updateCount(); }
-function selectNone() { if(busy)return; selected.clear(); render(); updateCount(); }
-function updateCount() { $('count').textContent=`${selected.size} / ${chars.length}`; $('goBtn').disabled=selected.size===0; }
-
-function log(msg, type='') {
-  const el=$('log'); el.classList.add('show');
-  el.innerHTML+=`<div class="l-${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-  el.scrollTop=el.scrollHeight;
-}
-
-async function doRefresh() {
-  if(busy||!selected.size)return;
-  busy=true;
-  $('goBtn').disabled=true; $('goBtn').textContent='갱신 중...';
-  $('progress').classList.add('show'); $('progressFill').style.width='0%';
-
-  const indices=[...selected].sort((a,b)=>a-b);
-  let done=0,ok=0,fail=0;
-  const BATCH=5;
-  log(`${indices.length}개 캐릭터 갱신 시작`,'info');
-
-  for(let i=0;i<indices.length;i+=BATCH){
-    const batch=indices.slice(i,i+BATCH);
-    batch.forEach(j=>{chars[j]._status='loading';}); render();
-
-    await Promise.all(batch.map(async j=>{
-      try{
-        const res=await fetch(`/api/refresh?server=${chars[j].server}&key=${chars[j].key}`);
-        const data=await res.json();
-        if(data.ok){chars[j]._status='done';chars[j]._refreshTime=data.refreshTime;ok++}else{chars[j]._status='error';fail++}
-      }catch{chars[j]._status='error';fail++}
-    }));
-
-    done+=batch.length;
-    $('progressFill').style.width=`${(done/indices.length)*100}%`;
-    batch.forEach(j=>log(`${chars[j].name} ${chars[j]._status==='done'?'✓':'✗'}`,chars[j]._status==='done'?'ok':'err'));
-    render();
-    if(i+BATCH<indices.length) await new Promise(r=>setTimeout(r,500));
-  }
-
-  log(`완료! ✓${ok}${fail?' ✗'+fail:''}`,'info');
-
-  try {
-    const prevStatus = Object.fromEntries(chars.map(c => [c.key, c._status]));
-    const prevRefreshTime = Object.fromEntries(chars.map(c => [c.key, c._refreshTime]));
-    const prevOzma = Object.fromEntries(chars.map(c => [c.key, c.ozma]));
-    const prevBuff = Object.fromEntries(chars.map(c => [c.key, c.buffScore]));
-    const refreshed = new Set(indices.filter(j => chars[j]._status === 'done').map(j => chars[j].key));
-    const res = await fetch(`/api/search?server=adven&name=${encodeURIComponent($('name').value.trim())}`);
-    const data = await res.json();
-    if (!data.error && data.characters?.length) {
-      chars = data.characters.map(c => ({
-        ...c,
-        avatarUrl: `https://img-api.neople.co.kr/df/servers/${c.server}/characters/${c.key}?zoom=1`,
-        _status: prevStatus[c.key] || 'idle',
-        _refreshTime: prevRefreshTime[c.key] ?? null,
-        _prevOzma: refreshed.has(c.key) ? prevOzma[c.key] : null,
-        _prevBuffScore: refreshed.has(c.key) ? prevBuff[c.key] : null
-      }));
-      render();
-      log('수치 업데이트 완료', 'info');
-    }
-  } catch(e) {}
-
-  busy=false; $('goBtn').disabled=false; $('goBtn').textContent='선택 갱신';
-}
-
-$('name').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
-document.getElementById('pactAdventure').addEventListener('keydown', e => { if(e.key==='Enter') pactRegister(); });
-$('name').focus();
-
-// ════════════════════════════════════
-//  종말의 계시 환산기
-// ════════════════════════════════════
-const RARITY_COLOR = {
-  rare:'#9ca3af', unique:'#fbbf24', legendary:'#fb923c',
-  radiant:'#34d399', epic:'#c084fc', primordial:'#f87171',
-};
-const AUCTION_ITEMS = [
-  { name:'100 ~ 300 주화',  val:100 },
-  { name:'200 ~ 300 주화',  val:200 },
-  { name:'200 ~ 400 주화',  val:200 },
-  { name:'300 ~ 400 주화',  val:300 },
-  { name:'500 ~ 700 주화',  val:500 },
-  { name:'700 ~ 1000 주화', val:700 },
-];
-const fmt = n => n == null ? '-' : Math.round(n).toLocaleString();
-
-function soulToggle(key) {
-  document.getElementById('sc-' + key).classList.toggle('open');
-}
-
-function renderSouls(data) {
-  const valid = data.filter(s => s.trade_value != null);
-  const best  = valid.reduce((a,b) => a.trade_value < b.trade_value ? a : b, valid[0]);
-
-  return `
-    <div class="section">
-      <div class="section-title">소울 결정별 계시 단가 (경매 10건 평균 기준)</div>
-      <div class="soul-list">
-        ${data.map(s => {
-          const isBest = best && s.key === best.key;
-          return `
-          <div class="soul-card${isBest?' best':''}" id="sc-${s.key}" onclick="soulToggle('${s.key}')">
-            <div class="soul-row">
-              <div class="soul-dot" style="background:${RARITY_COLOR[s.key]||'#888'}"></div>
-              <div class="soul-name">${s.name}</div>
-              <div class="soul-exchange">÷${s.exchange}</div>
-              <div class="soul-price${isBest?' best-price':''}">${fmt(s.trade_value)}G</div>
-              ${isBest?'<div class="best-badge">최저</div>':''}
-              <div class="chevron">▼</div>
-            </div>
-            <div class="soul-detail">
-              <div class="detail-grid">
-                <div><div class="detail-label">현재 경매 평균가</div><div class="detail-value">${fmt(s.average_price)}G (${s.auction_count}건)</div></div>
-                <div><div class="detail-label">현재 기준 계시 단가</div><div class="detail-value">${fmt(s.trade_value)}G</div></div>
-                <div><div class="detail-label">최근 거래 평균가</div><div class="detail-value">${fmt(s.average_sold_price)}G (${s.sold_count}건)</div></div>
-                <div><div class="detail-label">거래 기준 계시 단가</div><div class="detail-value">${fmt(s.sold_trade_value)}G</div></div>
-                <div><div class="detail-label">최저가 / 최고가</div><div class="detail-value">${fmt(s.lowest_price)}G ~ ${fmt(s.highest_price)}G</div></div>
-              </div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-    ${best ? renderBids(best) : ''}`;
-}
-
-// 1M에서 시작해 5%씩 올라가는 입찰 단계 중 limit 이하 마지막 값
-function lastSafeBid(limit) {
-  if (limit < 1_000_000) return null;
-  let bid = 1_000_000;
-  while (Math.round(bid * 1.05) <= limit) {
-    bid = Math.round(bid * 1.05);
-  }
-  return bid;
-}
-
-function renderBids(best) {
-  const bestCost = best.trade_value;
-  const rows = AUCTION_ITEMS.map(item => {
-    const minVal   = item.val * bestCost;
-    const limit    = Math.floor(minVal / 0.775);
-    const safeBid  = lastSafeBid(limit);
-    const ok       = safeBid != null;
-    const payback  = ok ? Math.floor(safeBid * 0.225) : null;
-    const net      = ok ? safeBid - payback : null;
-    return { ...item, minVal, limit, safeBid, payback, net, ok };
-  });
-  return `
-    <div class="section">
-      <div class="section-title">주화 경매 입찰 한계가 계산</div>
-      <div class="basis-bar">
-        기준: <span>${best.name}</span> — 계시 1개당 <span>${fmt(bestCost)}G</span>
-        <span class="basis-hint">낙찰금 22.5% 환급 · 100만G 시작 5% 상승</span>
-      </div>
-      <div class="bid-list">
-        <div class="bid-row hdr"><div>품목</div><div class="bid-val">가치</div><div class="bid-val">마지막 입찰가</div><div class="bid-val">분배금 / 실지출</div></div>
-        ${rows.map(r => `
-        <div class="bid-row${r.ok?'':' forbidden'}">
-          <div class="bid-item-name${r.ok?'':' forbidden'}">${r.name}</div>
-          <div class="bid-val bid-meta">${fmt(r.minVal)}G</div>
-          ${r.ok
-            ? `<div class="bid-val bid-limit">${fmt(r.safeBid)}G</div>
-               <div class="bid-val bid-meta">+${fmt(r.payback)} / ${fmt(r.net)}G</div>`
-            : `<div class="bid-forbidden">입찰 금지</div>`}
-        </div>`).join('')}
-      </div>
-    </div>`;
-}
-
-function showToast(msg) {
-  document.getElementById('toastMsg').textContent = msg;
-  document.getElementById('toast').classList.add('show');
-}
-function hideToast() {
-  document.getElementById('toast').classList.remove('show');
-}
-function resetSoulPrices(app) {
-  app.querySelectorAll('.soul-price, .detail-value, .bid-limit, .bid-next, .bid-meta, .basis-bar span').forEach(el => {
-    el.textContent = '-';
-  });
-}
-
-async function soulLoad() {
-  const btn = document.getElementById('soulRefreshBtn');
-  const app = document.getElementById('soulApp');
-  const isRefresh = soulLoaded;
-  btn.disabled = true;
-
-  if (isRefresh) {
-    resetSoulPrices(app);
-    app.classList.add('refreshing');
-    showToast('새로고침 중...');
-  } else {
-    document.getElementById('soulTs').textContent = '불러오는 중...';
-    app.innerHTML = '<div class="s-loading"><div class="s-spin">⏳</div><div>데이터 불러오는 중...</div></div>';
-  }
-
-  try {
-    const res  = await fetch('/api/soul');
-    const json = await res.json();
-    if (json.error) throw new Error(json.error);
-    document.getElementById('soulTs').textContent = json.timestamp + ' 기준';
-    app.innerHTML = renderSouls(json.data);
-    soulLoaded = true;
-  } catch(e) {
-    app.innerHTML = `<div class="error-msg">데이터 로드 실패: ${e.message}</div>`;
-    document.getElementById('soulTs').textContent = '오류';
-  }
-  app.classList.remove('refreshing');
-  hideToast();
-  btn.disabled = false;
-}
-</script>
 </body>
 </html>

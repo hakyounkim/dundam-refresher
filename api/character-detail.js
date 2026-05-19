@@ -1,5 +1,5 @@
 import './_env.js';
-import { evaluateSetPoint, inferEquippedSet } from './_set-thresholds.js';
+import { applyCors } from './_cors.js';
 
 const BASE = 'https://api.neople.co.kr/df';
 
@@ -14,12 +14,12 @@ async function fetchNeople(apiKey, path) {
   return res.json();
 }
 
-// GET /api/character-detail?serverId=&characterId=&extras=oath,mist,avatar,creature,buff,setitems
-//   기본:    basic / status / equipment  (가벼움)
-//   extras:  콤마-구분으로 선택 로드. setitems는 equipment의 setItemId를 한번에 multi 호출.
-//   응답에 항상: equippedSet (착용 세트 요약), setEval (세트포인트 활성 단계 평가)
+// GET /api/character-detail?serverId=cain&characterId=...&extras=oath,mist,avatar,creature,buff,setitems
+//   기본: basic, status, equipment 만 호출 (가벼움)
+//   extras 옵션으로 oath/mist/avatar/creature/buff/setitems 추가
+//   setitems 는 equipment에서 setItemId 모아서 multi/setitems 한 번 호출
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (applyCors(req, res)) return;
   res.setHeader('Cache-Control', 'public, max-age=30');
 
   const API_KEY = process.env.NEOPLE_API_KEY?.trim();
@@ -29,11 +29,13 @@ export default async function handler(req, res) {
   if (!serverId || !characterId) {
     return res.status(400).json({ error: 'serverId and characterId required' });
   }
+
   const want = new Set(String(extras).split(',').map(s => s.trim()).filter(Boolean));
 
   try {
     const basePath = `/servers/${serverId}/characters/${characterId}`;
 
+    // 첫 단계: 기본 + 옵션 endpoint 병렬
     const tasks = {
       basic:     fetchNeople(API_KEY, basePath),
       status:    fetchNeople(API_KEY, `${basePath}/status`),
@@ -47,21 +49,24 @@ export default async function handler(req, res) {
 
     const keys = Object.keys(tasks);
     const settled = await Promise.allSettled(Object.values(tasks));
-    const out = {}, errors = {};
+    const out = {};
+    const errors = {};
     keys.forEach((k, i) => {
       const r = settled[i];
       if (r.status === 'fulfilled') out[k] = r.value;
       else errors[k] = r.reason?.message ?? String(r.reason);
     });
 
+    // 정규화
     const equipment = out.equipment?.equipment ?? [];
 
-    // 2차: equipment의 setItemId들을 한 번에
+    // setitems: equipment에서 setItemId 모아 multi/setitems 호출
     let setitems = null;
     if (want.has('setitems') && equipment.length) {
       const setIds = [...new Set(equipment.map(e => e.setItemId).filter(Boolean))];
       if (setIds.length) {
         try {
+          // 최대 15개 제한
           const ids = setIds.slice(0, 15).join(',');
           const r = await fetchNeople(API_KEY, `/multi/setitems?setItemIds=${ids}`);
           setitems = r?.rows ?? r?.setItems ?? r;
@@ -72,16 +77,14 @@ export default async function handler(req, res) {
     return res.status(200).json({
       serverId,
       characterId,
-      basic:        out.basic    ?? null,
-      status:       out.status   ?? null,
+      basic:     out.basic ?? null,
+      status:    out.status ?? null,
       equipment,
-      equippedSet:  inferEquippedSet(equipment),
-      setEval:      evaluateSetPoint(equipment),
-      avatar:       out.avatar?.avatar             ?? null,
-      creature:     out.creature?.creature         ?? null,
-      oath:         out.oath?.oath                 ?? null,
-      mist:         out.mist?.mistAssimilation     ?? null,
-      buff:         out.buff?.skill?.buff          ?? null,
+      avatar:    out.avatar?.avatar ?? out.avatar ?? null,
+      creature:  out.creature?.creature ?? out.creature ?? null,
+      oath:      out.oath ?? null,
+      mist:      out.mist ?? null,
+      buff:      out.buff?.skill?.buff ?? out.buff ?? null,
       setitems,
       errors,
     });
