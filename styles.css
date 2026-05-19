@@ -903,6 +903,17 @@ input, select, button { font: inherit; color: inherit; }
 .progress-bar { height: 2px; background: transparent; overflow: hidden; }
 .progress-bar .pfill { height: 100%; width: 0%; background: var(--accent); transition: width .3s; }
 
+.loading-hint {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; margin-bottom: 8px;
+  background: oklch(from var(--accent) l c h / 0.08);
+  border: 1px solid oklch(from var(--accent) l c h / 0.2);
+  border-radius: var(--r-md);
+  color: var(--accent);
+  font-size: 12px; font-weight: 600;
+}
+.loading-hint .ico { width: 14px; height: 14px; }
+
 .empty-state {
   padding: 64px 24px;
   text-align: center;

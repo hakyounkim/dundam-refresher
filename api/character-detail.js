@@ -1,5 +1,6 @@
 import './_env.js';
 import { applyCors } from './_cors.js';
+import { evaluateSetPoint, inferEquippedSet } from './_set-thresholds.js';
 
 const BASE = 'https://api.neople.co.kr/df';
 
@@ -74,16 +75,22 @@ export default async function handler(req, res) {
       }
     }
 
+    // 세트 추론 + 세트포인트 평가 (장비 기반)
+    const equippedSet = equipment.length ? inferEquippedSet(equipment) : null;
+    const setEval     = equipment.length ? evaluateSetPoint(equipment) : null;
+
     return res.status(200).json({
       serverId,
       characterId,
       basic:     out.basic ?? null,
       status:    out.status ?? null,
       equipment,
+      equippedSet,
+      setEval,
       avatar:    out.avatar?.avatar ?? out.avatar ?? null,
       creature:  out.creature?.creature ?? out.creature ?? null,
-      oath:      out.oath ?? null,
-      mist:      out.mist ?? null,
+      oath:      out.oath?.oath ?? out.oath ?? null,
+      mist:      out.mist?.mistGear ?? out.mist?.mist ?? out.mist ?? null,
       buff:      out.buff?.skill?.buff ?? out.buff ?? null,
       setitems,
       errors,

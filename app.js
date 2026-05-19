@@ -278,8 +278,32 @@ $('#searchBtn').addEventListener('click', doSearch);
 $('#advName').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
 async function loadAllDetails() {
-  const promises = state.characters.map(c => loadCharDetail(c.characterId));
+  const total = state.characters.length;
+  if (!total) return;
+  let loaded = 0;
+  showLoadingHint(`캐릭터 상세 불러오는 중… 0/${total}`);
+  const promises = state.characters.map(c =>
+    loadCharDetail(c.characterId).finally(() => {
+      loaded++;
+      setLoadingHint(`캐릭터 상세 불러오는 중… ${loaded}/${total}`);
+    })
+  );
   await Promise.all(promises);
+  hideLoadingHint();
+}
+function showLoadingHint(text) {
+  const el = $('#loadingHint');
+  if (!el) return;
+  $('#loadingHintText').textContent = text;
+  el.style.display = '';
+}
+function setLoadingHint(text) {
+  const el = $('#loadingHintText');
+  if (el) el.textContent = text;
+}
+function hideLoadingHint() {
+  const el = $('#loadingHint');
+  if (el) el.style.display = 'none';
 }
 async function loadCharDetail(characterId) {
   const c = state.characters.find(x => x.characterId === characterId);
@@ -717,6 +741,9 @@ $('#selectNoneBtn').addEventListener('click', () => {
 });
 
 // ── Refresh (던담 갱신 호출) ──
+// 동시성 3 워커풀로 병렬화 + 루프 안의 character-detail 재조회 생략 (마지막 register로 일괄 갱신).
+const REFRESH_CONCURRENCY = 3;
+
 $('#refreshGoBtn').addEventListener('click', async () => {
   if (!state.characters.length) { alert('먼저 모험단을 검색해주세요'); return; }
   if (!state.selectedIds.size) {
@@ -726,44 +753,67 @@ $('#refreshGoBtn').addEventListener('click', async () => {
   const ids = Array.from(state.selectedIds);
   const fill = $('#progFill');
   $('#logPanel').style.display = '';
-  logLine('info', `${ids.length}명 갱신 시작…`);
-  for (let i = 0; i < ids.length; i++) {
-    const c = state.characters.find(x => x.characterId === ids[i]);
-    const card = document.querySelector(`.char-card[data-id="${ids[i]}"]`);
-    if (!card) continue;
-    const status = card.querySelector('.cc-status');
-    card.classList.remove('done','error');
-    card.classList.add('loading');
-    status.innerHTML = '<svg class="ico spin"><use href="#i-refresh"/></svg>';
+  logLine('info', `${ids.length}명 갱신 시작 (동시성 ${REFRESH_CONCURRENCY})…`);
+  const btn = $('#refreshGoBtn');
+  const origBtnHTML = btn.innerHTML;
+  btn.disabled = true;
+  showLoadingHint(`갱신 중… 0/${ids.length}`);
+  btn.innerHTML = `<svg class="ico sm spin"><use href="#i-refresh"/></svg><span>갱신 중… 0/${ids.length}</span>`;
+
+  // prevFame 기억해두기 (마지막 register 후 델타 계산용)
+  ids.forEach(id => {
+    const c = state.characters.find(x => x.characterId === id);
+    if (c) c.prevFame = c.fame;
+  });
+
+  let completed = 0;
+  async function refreshOne(id) {
+    const c = state.characters.find(x => x.characterId === id);
+    if (!c) return;
+    const card = document.querySelector(`.char-card[data-id="${id}"]`);
+    const status = card?.querySelector('.cc-status');
+    if (card) {
+      card.classList.remove('done','error');
+      card.classList.add('loading');
+    }
+    if (status) status.innerHTML = '<svg class="ico spin"><use href="#i-refresh"/></svg>';
     try {
       await A.refresh(c.serverId, c.characterId);
-      // 갱신 완료 후 새 fame 확인 (re-register하면 새 fame 받음, 비용 큼)
-      // 간단히 detail 재조회로 fame 업데이트
-      delete state.details[c.characterId];
-      const detail = await loadCharDetail(c.characterId);
-      const newFame = detail?.basic?.fame ?? c.fame;
-      c.prevFame = c.fame;
-      c.fame = newFame;
       c.refreshed = true;
-      patchCard(c.characterId);
-      const refreshedCard = document.querySelector(`.char-card[data-id="${ids[i]}"]`);
-      if (refreshedCard) {
-        refreshedCard.classList.add('done');
-        refreshedCard.querySelector('.cc-status').innerHTML = '<svg class="ico ok"><use href="#i-check"/></svg>';
+      const after = document.querySelector(`.char-card[data-id="${id}"]`);
+      if (after) {
+        after.classList.remove('loading');
+        after.classList.add('done');
+        after.querySelector('.cc-status').innerHTML = '<svg class="ico ok"><use href="#i-check"/></svg>';
       }
-      const gain = newFame - c.prevFame;
-      logLine(gain > 0 ? 'ok' : 'info', `${c.characterName}: ${gain > 0 ? '+' + fmt(gain) : '변동 없음'}`);
+      logLine('ok', `${c.characterName}: 던담 갱신 완료`);
     } catch (e) {
-      card.classList.remove('loading');
-      card.classList.add('error');
-      status.innerHTML = '<svg class="ico err"><use href="#i-alert"/></svg>';
+      if (card) { card.classList.remove('loading'); card.classList.add('error'); }
+      if (status) status.innerHTML = '<svg class="ico err"><use href="#i-alert"/></svg>';
       logLine('err', `${c.characterName}: ${e.message}`);
     }
-    fill.style.width = ((i+1)/ids.length * 100) + '%';
+    completed++;
+    fill.style.width = (completed / ids.length * 100) + '%';
+    setLoadingHint(`갱신 중… ${completed}/${ids.length}`);
+    btn.innerHTML = `<svg class="ico sm spin"><use href="#i-refresh"/></svg><span>갱신 중… ${completed}/${ids.length}</span>`;
   }
-  logLine('ok', '갱신 완료');
+
+  // 워커 풀: 큐에서 하나씩 빼서 처리, REFRESH_CONCURRENCY개가 동시에 돌아감
+  const queue = ids.slice();
+  const workers = Array.from({ length: REFRESH_CONCURRENCY }, async () => {
+    while (queue.length) {
+      const id = queue.shift();
+      if (id) await refreshOne(id);
+    }
+  });
+  await Promise.all(workers);
+
+  logLine('ok', '갱신 루프 완료');
   state.lastSyncAt = Date.now();
-  // 갱신 후 던담이 새로 계산한 ozma/buffScore를 가져오려면 모험단 재조회
+
+  // 모험단 재집계 — fame/ozma/buffScore 일괄 갱신
+  setLoadingHint('던담 모험단 재집계 중…');
+  btn.innerHTML = `<svg class="ico sm spin"><use href="#i-refresh"/></svg><span>모험단 재집계 중…</span>`;
   try {
     const res = await A.registerAdventure(state.adventureName);
     const newMap = Object.fromEntries((res.characters || []).map(x => [x.characterId, x]));
@@ -783,13 +833,28 @@ $('#refreshGoBtn').addEventListener('click', async () => {
       applyEnchantressDemo(updated);
       return updated;
     });
+    // 갱신된 캐릭별 명성 델타 로그
+    state.characters.forEach(c => {
+      if (!c.refreshed) return;
+      const gain = (c.fame || 0) - (c.prevFame || 0);
+      if (gain !== 0) logLine(gain > 0 ? 'ok' : 'info', `${c.characterName}: ${gain > 0 ? '+' : ''}${fmt(gain)} 명성`);
+    });
     state.characters.forEach(c => patchCard(c.characterId));
   } catch (e) {
     logLine('err', '던담 라이브값 재조회 실패: ' + e.message);
   }
+
+  // 세트/서약 등 상세는 백그라운드로 한꺼번에 (await 안 함 → UI는 바로 자유)
+  state.details = {};
+  state.characters.forEach(c => patchCard(c.characterId));
+  loadAllDetails().catch(e => logLine('err', '상세 재조회 실패: ' + e.message));
+
   saveState();
   renderRefreshStats();
   setTimeout(() => { fill.style.width = '0%'; }, 800);
+  hideLoadingHint();
+  btn.innerHTML = origBtnHTML;
+  btn.disabled = false;
 });
 
 function logLine(level, msg) {

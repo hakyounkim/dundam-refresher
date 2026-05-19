@@ -150,6 +150,11 @@
         <span class="recent-label">최근</span>
       </div>
 
+      <!-- 로딩 표시 (검색 직후 상세 로드 / 갱신 진행) -->
+      <div class="loading-hint" id="loadingHint" style="display:none">
+        <svg class="ico spin"><use href="#i-refresh"/></svg>
+        <span id="loadingHintText">데이터 불러오는 중…</span>
+      </div>
       <div class="progress-bar" id="progBar"><div class="pfill" id="progFill"></div></div>
 
       <!-- Character grid -->
