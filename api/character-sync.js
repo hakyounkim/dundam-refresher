@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const API_KEY = process.env.NEOPLE_API_KEY?.trim();
   if (!API_KEY) return res.status(500).json({ error: 'NEOPLE_API_KEY not configured' });
 
-  const { characterId } = req.body ?? {};
+  const { characterId, force } = req.body ?? {};
   if (!characterId) return res.status(400).json({ error: 'characterId required' });
 
   const sql = requireDb();
@@ -25,9 +25,10 @@ export default async function handler(req, res) {
 
     const now = new Date();
     const MAX_LOOKBACK_MS = 90 * 24 * 3600 * 1000;
-    const fromWall = char.last_timeline_at ? new Date(char.last_timeline_at) : new Date(now.getTime() - MAX_LOOKBACK_MS);
     // Neople은 최대 90일까지만 조회 가능
     const floor = new Date(now.getTime() - MAX_LOOKBACK_MS);
+    // force = last_timeline_at 게이트 무시하고 90일 전체 재수집(백필용)
+    const fromWall = (force || !char.last_timeline_at) ? floor : new Date(char.last_timeline_at);
     const startDate = fromWall < floor ? floor : fromWall;
 
     const rows = await fetchTimelinePages({

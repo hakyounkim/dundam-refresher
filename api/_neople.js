@@ -1,6 +1,8 @@
 const BASE = 'https://api.neople.co.kr/df';
 
-export const PACT_EVENT_CODES = [550, 551, 552, 554, 557];
+export const PACT_EVENT_CODES = [550, 551, 552, 554, 557];   // 서약·결정
+export const GEAR_EVENT_CODES = [504, 505, 507, 513];         // 장비 드랍(항아리·던전드랍·레이드카드·던전카드)
+export const ALL_DROP_CODES = [...PACT_EVENT_CODES, ...GEAR_EVENT_CODES];
 
 // 'YYYYMMDDTHHMM' (KST)
 export function fmtKST(d) {
@@ -48,7 +50,7 @@ export async function searchAdventureCharactersAlt({ apiKey, serverId, adventure
   return json?.rows ?? [];
 }
 
-export async function fetchTimelinePages({ apiKey, serverId, characterId, startDate, endDate, codes = PACT_EVENT_CODES, maxPages = 20 }) {
+export async function fetchTimelinePages({ apiKey, serverId, characterId, startDate, endDate, codes = ALL_DROP_CODES, maxPages = 20 }) {
   const all = [];
   let next = null;
   let pages = 0;

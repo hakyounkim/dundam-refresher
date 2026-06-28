@@ -183,52 +183,57 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">드랍 기록</h1>
-          <p class="page-sub">서약·결정·장비 파밍 내역을 한 눈에</p>
+          <p class="page-sub">실제 태초 장비 드랍 + 서약·결정 내역</p>
         </div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
           <div class="segmented" id="historySub">
-            <button class="seg active" data-sub="gear"><svg class="ico sm"><use href="#i-sword"/></svg>&nbsp;장비</button>
+            <button class="seg active" data-sub="drop"><svg class="ico sm"><use href="#i-gem"/></svg>&nbsp;장비 드랍</button>
             <button class="seg" data-sub="pact"><svg class="ico sm"><use href="#i-pact"/></svg>&nbsp;서약·결정</button>
           </div>
+          <button class="btn" id="dropSyncBtn" title="Neople 타임라인에서 최근 90일 드랍 재수집">
+            <svg class="ico sm"><use href="#i-refresh"/></svg>
+            <span>드랍 동기화</span>
+          </button>
         </div>
       </div>
 
       <!-- Stats -->
       <div class="stat-strip" id="historyStats"></div>
 
-      <!-- Subpane: GEAR (new design — matrix) -->
-      <div id="subpane-gear">
+      <!-- Subpane: DROP (실제 장비 태초 드랍 표) -->
+      <div id="subpane-drop">
         <div class="toolbar">
           <div class="search-wrap">
-            <svg class="ico" style="color:var(--text-3)"><use href="#i-filter"/></svg>
-            <span style="font-size:12px;color:var(--text-3);font-weight:600">필터:</span>
-            <span style="flex:1"></span>
-          </div>
-          <div class="segmented">
-            <button class="seg active" data-gear-rarity="all">전체</button>
-            <button class="seg" data-gear-rarity="taecho">태초만</button>
-            <button class="seg" data-gear-rarity="epic">에픽만</button>
+            <svg class="ico" style="color:var(--text-3)"><use href="#i-search"/></svg>
+            <input type="text" id="dropSearch" placeholder="아이템·캐릭·던전 검색…">
           </div>
           <span class="toolbar-divider"></span>
-          <button class="btn">
-            <svg class="ico sm"><use href="#i-eye"/></svg>
-            <span>전체 펼치기</span>
-          </button>
+          <span style="font-size:12px;color:var(--text-3);font-weight:600"><span style="color:var(--r-taecho)">태초</span> 장비 드랍만</span>
+          <span class="toolbar-divider"></span>
+          <div class="segmented" id="dropPathSeg">
+            <button class="seg active" data-path="all">전체</button>
+            <button class="seg" data-path="505">던전</button>
+            <button class="seg" data-path="504">항아리</button>
+            <button class="seg" data-path="card">카드</button>
+          </div>
         </div>
 
-        <div class="matrix-wrap">
-          <div class="matrix" id="gearMatrix"></div>
-        </div>
-
-        <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:12px;font-size:11px;color:var(--text-3)">
-          <span style="display:flex;align-items:center;gap:6px">
-            <span style="width:10px;height:10px;border-radius:3px;background:oklch(from var(--r-taecho) l c h / 0.4);border:1px solid var(--r-taecho)"></span>
-            태초
-          </span>
-          <span style="display:flex;align-items:center;gap:6px">
-            <span style="width:10px;height:10px;border-radius:3px;background:oklch(from var(--r-epic) l c h / 0.4);border:1px solid var(--r-epic)"></span>
-            에픽
-          </span>
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="data-table" id="dropTable">
+              <thead>
+                <tr>
+                  <th>시각</th>
+                  <th>캐릭</th>
+                  <th>아이템</th>
+                  <th>경로</th>
+                  <th>던전</th>
+                  <th>채널</th>
+                </tr>
+              </thead>
+              <tbody id="dropTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 

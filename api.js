@@ -44,7 +44,7 @@ async function characterDetail(serverId, characterId, extras = ['oath']) {
 }
 
 // ── 드랍 이벤트 ──
-async function events({ adventureName, characterId, rarity = '태초,에픽', category = 'pact,soul', limit = 200 }) {
+async function events({ adventureName, characterId, rarity = '태초,에픽', category = 'pact,soul,gear', limit = 200 }) {
   const qs = new URLSearchParams({ rarity, category, limit: String(limit) });
   if (adventureName) qs.set('adventureName', adventureName);
   if (characterId)   qs.set('characterId', characterId);
@@ -52,11 +52,11 @@ async function events({ adventureName, characterId, rarity = '태초,에픽', ca
 }
 
 // ── 캐릭 동기화 (드랍 timeline DB 적재) ──
-async function characterSync(characterId) {
+async function characterSync(characterId, { force = false } = {}) {
   return fetchJson('/api/character-sync', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ characterId }),
+    body: JSON.stringify({ characterId, force }),
   });
 }
 

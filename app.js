@@ -136,11 +136,12 @@ const state = {
   selectedIds: new Set(),
   modalChar: null,
   modalTab: 'summary',
-  historySub: 'gear',
+  historySub: 'drop',
   pactCat: 'all',
   pactRarity: 'all',
   pactSearch: '',
-  gearRarity: 'all',
+  dropSearch: '',
+  dropPath: 'all',
   events: null,
   lastSyncAt: null,
   loadingAdventure: false,
@@ -184,10 +185,8 @@ function switchTab(t) {
   const titles = { refresh:'일괄 갱신기', history:'드랍 기록', soul:'계시 환산기', tobeol:'토벌권 계산기' };
   $('#pageCrumb').textContent = titles[t];
   if (t === 'history') {
-    loadEvents().then(() => {
-      if (state.historySub === 'gear') renderGearMatrix();
-      else renderPactTable();
-    });
+    switchHistorySub(state.historySub);                       // 현재 데이터로 즉시 렌더
+    loadEvents().then(() => switchHistorySub(state.historySub)); // 이벤트 적재 후 재렌더
   }
   if (t === 'soul') loadSoul();
   if (t === 'tobeol') window.Tobeol?.render(state.characters);
@@ -892,18 +891,69 @@ async function loadEvents() {
   if (!state.adventureName) return;
   if (state.events) return; // cached for session
   try {
-    const res = await A.events({ adventureName: state.adventureName });
+    const res = await A.events({ adventureName: state.adventureName, category: 'pact,soul,gear', limit: 2000 });
     state.events = res.rows || [];
-    renderHistoryStats();
   } catch (e) {
     console.error(e);
   }
 }
 
+// 획득 경로(event_code) 라벨 — 장비 드랍 + 서약·결정 통합
+const PATH_LABEL = {
+  504:'항아리·상자', 505:'던전 드랍', 507:'레이드 카드', 513:'던전 카드',
+  550:'드랍', 551:'레이드', 552:'항아리', 554:'제작', 557:'카드',
+};
+
+// 카테고리별 이벤트 분리 헬퍼
+const pactEvents = () => (state.events || []).filter(e => e.item_category === 'pact' || e.item_category === 'soul');
+const gearEvents = () => (state.events || []).filter(e => e.item_category === 'gear');
+
 function renderHistoryStats() {
+  // 하위탭별 분기: 서약·결정 드랍 / 장비 드랍
+  if (state.historySub === 'pact') renderPactStats();
+  else renderDropStats();
+}
+
+function renderDropStats() {
   const wrap = $('#historyStats');
   if (!state.events) { wrap.innerHTML = ''; return; }
-  const events = state.events;
+  const drops = gearEvents();
+  const last7 = drops.filter(e => (Date.now() - new Date(e.occurred_at)) < 7 * 86400000).length;
+  const byChar = {}, byDungeon = {};
+  drops.forEach(e => {
+    byChar[e.character_name] = (byChar[e.character_name] || 0) + 1;
+    if (e.dungeon_name) byDungeon[e.dungeon_name] = (byDungeon[e.dungeon_name] || 0) + 1;
+  });
+  const topChar = Object.entries(byChar).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
+  const topDungeon = Object.entries(byDungeon).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
+  wrap.innerHTML = `
+    <div class="kpi">
+      <span class="kpi-label">태초 드랍</span>
+      <span class="kpi-value num" style="color:var(--r-taecho)">${drops.length}</span>
+      <span class="kpi-foot">최근 90일 DB 적재</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">최근 7일</span>
+      <span class="kpi-value num accent">${last7}</span>
+      <span class="kpi-foot">최근 일주일 드랍</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">최다 캐릭</span>
+      <span class="kpi-value num" style="font-size:20px">${topChar[0]}</span>
+      <span class="kpi-foot">태초 ${topChar[1]}개 획득</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">최다 던전</span>
+      <span class="kpi-value num" style="font-size:18px">${topDungeon[0]}</span>
+      <span class="kpi-foot">${topDungeon[1]}회 드랍</span>
+    </div>
+  `;
+}
+
+function renderPactStats() {
+  const wrap = $('#historyStats');
+  if (!state.events) { wrap.innerHTML = ''; return; }
+  const events = pactEvents();
   const taechoCount = events.filter(e => e.item_rarity === '태초').length;
   const epicCount = events.filter(e => e.item_rarity === '에픽').length;
   const last7 = events.filter(e => (Date.now() - new Date(e.occurred_at)) < 7*86400000).length;
@@ -936,98 +986,14 @@ function renderHistoryStats() {
 
 function switchHistorySub(sub) {
   state.historySub = sub;
-  $('#subpane-gear').style.display = sub === 'gear' ? '' : 'none';
+  $('#subpane-drop').style.display = sub === 'drop' ? '' : 'none';
   $('#subpane-pact').style.display = sub === 'pact' ? '' : 'none';
   $$('#historySub .seg').forEach(b => b.classList.toggle('active', b.dataset.sub === sub));
-  if (sub === 'gear') renderGearMatrix();
+  renderHistoryStats();
   if (sub === 'pact') renderPactTable();
+  else renderDropTable();
 }
 $$('#historySub .seg').forEach(b => b.addEventListener('click', () => switchHistorySub(b.dataset.sub)));
-
-// ── Gear matrix (live equipment) ──
-function renderGearMatrix() {
-  const wrap = $('#gearMatrix');
-  const chars = state.characters;
-  if (!chars.length) {
-    wrap.innerHTML = '';
-    wrap.parentElement.innerHTML = `<div class="empty-state"><div class="empty-state-title">모험단을 먼저 검색해주세요</div></div>`;
-    return;
-  }
-  const cols = `200px repeat(${chars.length}, minmax(120px, 1fr)) 110px`;
-  wrap.style.gridTemplateColumns = cols;
-
-  let html = '';
-  html += `<div class="matrix-cell head corner"></div>`;
-  chars.forEach(c => {
-    html += `<div class="matrix-cell head">
-      <div class="head-char">
-        <div class="avatar sm">${avatarHTML(c)}</div>
-        <span class="head-name">${c.characterName}</span>
-        <span class="head-job">${c.jobGrowName || ''}</span>
-      </div>
-    </div>`;
-  });
-  html += `<div class="matrix-cell head" style="text-align:center"><div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="color:var(--text-2)">통계</span><span style="font-size:9px;color:var(--text-4)">태초 / 에픽</span></div></div>`;
-
-  MATRIX_SLOTS.forEach(slot => {
-    html += `<div class="matrix-cell row-label">
-      <div class="row-ico">${SLOT_EMOJI[slot] || '·'}</div>
-      <span>${SLOT_LABEL[slot] || slot}</span>
-    </div>`;
-    let taechos = 0, epics = 0;
-    chars.forEach(c => {
-      const detail = state.details[c.characterId];
-      const eq = detail?.equipment;
-      const item = Array.isArray(eq) ? eq.find(e => normSlotId(e.slotId) === slot) : null;
-      if (!item) {
-        html += `<div class="matrix-cell gear-cell empty">
-          <div class="gear-icon">·</div>
-          <div class="gear-info"><div class="gear-name" style="color:var(--text-4)">${detail?.loading ? '로딩…' : '미장착'}</div></div>
-        </div>`;
-        return;
-      }
-      const rCls = rarityClass(item.itemRarity);
-      if (item.itemRarity === '태초') taechos++;
-      if (item.itemRarity === '에픽') epics++;
-      const visible = state.gearRarity === 'all'
-        || (state.gearRarity === 'taecho' && item.itemRarity === '태초')
-        || (state.gearRarity === 'epic' && item.itemRarity === '에픽');
-      const dimStyle = visible ? '' : 'opacity:0.25;filter:saturate(0.3)';
-      const rein = item.reinforce ? `<span class="gear-rein">+${item.reinforce}</span>` : '';
-      const amp = item.amplificationName ? `<span>${item.amplificationName}</span>` : '';
-      const img = item.itemId
-        ? `<img src="https://img-api.neople.co.kr/df/items/${encodeURIComponent(item.itemId)}" alt="" onerror="this.remove()">`
-        : (SLOT_EMOJI[slot] || '·');
-      html += `<div class="matrix-cell gear-cell ${rCls}" style="${dimStyle}" data-char="${c.characterId}">
-        <div class="gear-icon">${img}</div>
-        <div class="gear-info">
-          <div class="gear-name">${item.itemName}</div>
-          <div class="gear-meta">${rein}${rein && amp ? '<span style="color:var(--text-4)">·</span>' : ''}${amp}</div>
-        </div>
-      </div>`;
-    });
-    html += `<div class="matrix-cell aggregate">
-      <div class="agg-row"><span class="agg-dot taecho"></span><span class="agg-count">${taechos}</span><span class="agg-pct">${chars.length ? Math.round(taechos/chars.length*100) : 0}%</span></div>
-      <div class="agg-row"><span class="agg-dot epic"></span><span class="agg-count">${epics}</span><span class="agg-pct">${chars.length ? Math.round(epics/chars.length*100) : 0}%</span></div>
-    </div>`;
-  });
-  wrap.innerHTML = html;
-
-  wrap.querySelectorAll('.gear-cell').forEach(cell => {
-    cell.addEventListener('click', () => {
-      const charId = cell.dataset.char;
-      if (charId) {
-        state.modalTab = 'gear';
-        openModal(c => c.characterId === charId);
-      }
-    });
-  });
-}
-$$('[data-gear-rarity]').forEach(b => b.addEventListener('click', () => {
-  state.gearRarity = b.dataset.gearRarity;
-  $$('[data-gear-rarity]').forEach(x => x.classList.toggle('active', x === b));
-  renderGearMatrix();
-}));
 
 // ── Pact table ──
 function renderPactTable() {
@@ -1037,7 +1003,7 @@ function renderPactTable() {
     return;
   }
   const q = state.pactSearch.toLowerCase();
-  const rows = state.events.filter(e => {
+  const rows = pactEvents().filter(e => {
     if (state.pactCat !== 'all' && e.item_category !== state.pactCat) return false;
     if (state.pactRarity !== 'all' && e.item_rarity !== state.pactRarity) return false;
     if (q && !(e.item_name.toLowerCase().includes(q)
@@ -1045,7 +1011,6 @@ function renderPactTable() {
             || (e.dungeon_name||'').toLowerCase().includes(q))) return false;
     return true;
   });
-  const PATH_LABEL = {550:'드랍', 551:'레이드', 552:'항아리', 554:'제작', 557:'카드'};
   wrap.innerHTML = rows.map(r => {
     const cat = r.item_category === 'soul'
       ? `<span class="badge" style="color:var(--info);border-color:oklch(from var(--info) l c h / 0.4);background:oklch(from var(--info) l c h / 0.1)">결정</span>`
@@ -1081,6 +1046,94 @@ $$('#pactRaritySeg .seg').forEach(b => b.addEventListener('click', () => {
   renderPactTable();
 }));
 $('#pactSearch').addEventListener('input', e => { state.pactSearch = e.target.value; renderPactTable(); });
+
+// ── Drop table (실제 장비 태초 드랍) ──
+function renderDropTable() {
+  const wrap = $('#dropTableBody');
+  if (!state.events) {
+    wrap.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-state-title">로딩 중…</div></div></td></tr>`;
+    return;
+  }
+  const q = state.dropSearch.toLowerCase();
+  const rows = gearEvents().filter(e => {
+    if (state.dropPath !== 'all') {
+      const code = Number(e.event_code);
+      if (state.dropPath === 'card') { if (code !== 507 && code !== 513) return false; }
+      else if (code !== Number(state.dropPath)) return false;
+    }
+    if (q && !(e.item_name.toLowerCase().includes(q)
+            || e.character_name.toLowerCase().includes(q)
+            || (e.dungeon_name||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  wrap.innerHTML = rows.map(r => {
+    const char = state.characters.find(c => c.characterId === r.character_id) || { characterName: r.character_name, serverId: r.server_id, characterId: r.character_id };
+    const img = r.item_id
+      ? `<img src="https://img-api.neople.co.kr/df/items/${encodeURIComponent(r.item_id)}" alt="" style="width:22px;height:22px;border-radius:4px;flex-shrink:0" onerror="this.remove()">`
+      : '';
+    return `
+      <tr>
+        <td class="col-time">${fmtTime(r.occurred_at)}</td>
+        <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar sm">${avatarHTML(char)}</div><span style="font-weight:600">${r.character_name}</span></div></td>
+        <td><div style="display:flex;align-items:center;gap:6px">${img}<span class="col-item r-taecho">${r.item_name}</span></div></td>
+        <td><span class="path-tag">${PATH_LABEL[r.event_code] || ('code ' + r.event_code)}</span></td>
+        <td class="col-path">${r.dungeon_name || '-'}</td>
+        <td class="col-channel">${r.channel_name ? `${r.channel_name}${r.channel_no ? '-' + r.channel_no : ''}` : '-'}</td>
+      </tr>
+    `;
+  }).join('') || `
+    <tr><td colspan="6"><div class="empty-state">
+      <div class="empty-state-title">기록된 태초 장비 드랍이 없습니다</div>
+      <div class="empty-state-sub">우측 상단 "드랍 동기화"로 최근 90일 드랍을 수집해보세요</div>
+    </div></td></tr>
+  `;
+}
+$$('#dropPathSeg .seg').forEach(b => b.addEventListener('click', () => {
+  state.dropPath = b.dataset.path;
+  $$('#dropPathSeg .seg').forEach(x => x.classList.toggle('active', x === b));
+  renderDropTable();
+}));
+$('#dropSearch').addEventListener('input', e => { state.dropSearch = e.target.value; renderDropTable(); });
+
+// ── 드랍 동기화: Neople 타임라인에서 최근 90일 드랍 강제 재수집(백필) ──
+let dropSyncing = false;
+$('#dropSyncBtn').addEventListener('click', async () => {
+  if (dropSyncing) return;
+  const chars = state.characters;
+  if (!chars.length) { logLine('warn', '먼저 모험단을 검색해주세요'); return; }
+  dropSyncing = true;
+  const btn = $('#dropSyncBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  logLine('info', `드랍 동기화 시작 — ${chars.length}캐릭 (최근 90일)`);
+
+  let done = 0, totalInserted = 0;
+  const queue = [...chars];
+  async function worker() {
+    while (queue.length) {
+      const c = queue.shift();
+      try {
+        const r = await A.characterSync(c.characterId, { force: true });
+        totalInserted += r.insertedCount || 0;
+        if (r.insertedCount) logLine('ok', `${c.characterName}: +${r.insertedCount}건`);
+      } catch (e) {
+        logLine('error', `${c.characterName}: ${e.message}`);
+      }
+      done++;
+      btn.querySelector('span').textContent = `동기화 ${done}/${chars.length}`;
+    }
+  }
+  await Promise.all(Array.from({ length: REFRESH_CONCURRENCY }, worker));
+
+  logLine('ok', `드랍 동기화 완료 — 신규 ${totalInserted}건 적재`);
+  btn.classList.remove('loading');
+  btn.disabled = false;
+  btn.querySelector('span').textContent = '드랍 동기화';
+  dropSyncing = false;
+  state.events = null;
+  await loadEvents();
+  switchHistorySub(state.historySub);
+});
 
 // ════════════════════════════════════════════════════════════
 //  SOUL tab

@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     const {
       adventureName, serverId, characterId,
       rarity = '태초,에픽',
-      category = 'pact,soul',
+      category = 'pact,soul,gear',
       from, to,
       limit = '500',
     } = req.query ?? {};
@@ -90,6 +90,12 @@ export default async function handler(req, res) {
 
 function pathLabel(code) {
   switch (Number(code)) {
+    // 장비 드랍
+    case 504: return '항아리·상자';
+    case 505: return '던전 드랍';
+    case 507: return '레이드 카드';
+    case 513: return '던전 카드';
+    // 서약·결정
     case 550: return '드랍';
     case 551: return '레이드 카드';
     case 552: return '항아리/상자';
