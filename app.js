@@ -176,12 +176,12 @@ function restoreState() {
 // ════════════════════════════════════════════════════════════
 function switchTab(t) {
   state.tab = t;
-  ['refresh','history','soul'].forEach(name => {
+  ['refresh','history','soul','tobeol'].forEach(name => {
     $('#pane-' + name).style.display = name === t ? '' : 'none';
     const btn = document.querySelector(`.nav-btn[data-tab="${name}"]`);
     if (btn) btn.classList.toggle('active', name === t);
   });
-  const titles = { refresh:'일괄 갱신기', history:'드랍 기록', soul:'계시 환산기' };
+  const titles = { refresh:'일괄 갱신기', history:'드랍 기록', soul:'계시 환산기', tobeol:'토벌권 계산기' };
   $('#pageCrumb').textContent = titles[t];
   if (t === 'history') {
     loadEvents().then(() => {
@@ -190,6 +190,7 @@ function switchTab(t) {
     });
   }
   if (t === 'soul') loadSoul();
+  if (t === 'tobeol') window.Tobeol?.render(state.characters);
 }
 $$('.nav-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 

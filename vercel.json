@@ -17,7 +17,7 @@
       ]
     },
     {
-      "source": "/(app|api|styles).(js|css)",
+      "source": "/(app|api|styles|tobeol).(js|css)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
       ]

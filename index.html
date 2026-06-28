@@ -63,6 +63,10 @@
         <span class="nav-ico"><svg class="ico"><use href="#i-gem"/></svg></span>
         <span>계시 환산기</span>
       </button>
+      <button class="nav-btn" data-tab="tobeol">
+        <span class="nav-ico"><svg class="ico"><use href="#i-bolt"/></svg></span>
+        <span>토벌권 계산기</span>
+      </button>
     </nav>
 
     <div class="side-section-label" style="margin-top:18px">레거시</div>
@@ -313,6 +317,11 @@
       </div>
     </section>
 
+    <!-- ══════════ TAB: 토벌권 계산기 ══════════ -->
+    <section class="page" id="pane-tobeol" style="display:none">
+      <div id="tobeolRoot"></div>
+    </section>
+
   </main>
 </div>
 
@@ -385,6 +394,7 @@
 </div>
 
 <script src="api.js"></script>
+<script src="tobeol.js"></script>
 <script src="app.js"></script>
 
 </body>
