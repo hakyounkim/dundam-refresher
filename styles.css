@@ -1123,6 +1123,17 @@ input, select, button { font: inherit; color: inherit; }
   color: var(--accent);
   font-weight: 600;
 }
+.soul-target-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px; font-size: 12px; color: var(--text-3);
+}
+.soul-target-row label { font-weight: 700; white-space: nowrap; }
+.soul-target-row input[type=range] { flex: 1; min-width: 120px; accent-color: var(--accent); cursor: pointer; }
+.soul-target-row input[type=text] {
+  width: 92px; text-align: right; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 7px; padding: 4px 8px; color: var(--text-1); font-size: 12px; font-variant-numeric: tabular-nums;
+}
+.soul-target-row .unit { color: var(--text-4); }
 .soul-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1171,6 +1182,12 @@ input, select, button { font: inherit; color: inherit; }
 .bid-table tr.forbidden td { background: oklch(from var(--danger) l c h / 0.06); }
 .bid-table tr.forbidden .col-item { color: var(--danger); }
 .bid-table tr.forbidden .col-next { color: var(--danger); }
+.bid-table .bid-cell { text-align: right; padding-top: 7px; padding-bottom: 7px; }
+.bid-table .bid-cell .bid-price { display: block; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-1); }
+.bid-table .bid-cell small { display: block; font-size: 10px; color: var(--text-4); font-variant-numeric: tabular-nums; }
+.bid-table .bid-cell.safe .bid-price { color: var(--info); }
+.bid-table .bid-cell.hot .bid-price { color: #ff9d3c; }
+.bid-table .bid-cell.forbidden .bid-price { color: var(--danger); font-weight: 600; }
 
 /* 소울 카드 — 펼침 상세 */
 .soul-card .chevron {
@@ -1194,6 +1211,19 @@ input, select, button { font: inherit; color: inherit; }
 .soul-detail-row { display: flex; flex-direction: column; gap: 2px; }
 .soul-detail-label { font-size: 10px; color: var(--text-3); font-weight: 600; }
 .soul-detail-value { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.soul-sweep { margin-top: 10px; }
+.soul-sweep-label { font-size: 10px; color: var(--text-3); font-weight: 600; }
+.soul-sweep-label small { color: var(--text-4); font-weight: 500; }
+.soul-sweep-tiers { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.soul-tier {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  padding: 3px 8px; border-radius: 7px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 11px; font-variant-numeric: tabular-nums;
+}
+.soul-tier b { color: var(--text-1); font-weight: 700; }
+.soul-tier-x { color: var(--text-3); font-size: 10px; }
+.soul-tier.more { background: transparent; border-style: dashed; color: var(--text-3); font-weight: 600; }
 
 /* ════════════════════════════════════════════════════════════
    Modal — character detail

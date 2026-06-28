@@ -291,24 +291,30 @@
       <div class="soul-meta-row">
         <span>기준:</span>
         <span class="basis" id="soulBasis">—</span>
-        <span style="margin-left:auto;color:var(--text-4);font-size:11px">클릭하면 상세 펼침</span>
+      </div>
+
+      <div class="soul-target-row">
+        <label for="soulTargetRange">계시 목표</label>
+        <input type="range" id="soulTargetRange" min="1000" max="100000" step="1000" value="1000">
+        <input type="text" id="soulTargetInput" inputmode="numeric" value="1,000">
+        <span class="unit">개</span>
       </div>
 
       <div class="soul-grid" id="soulGrid"></div>
 
       <div class="card" style="margin-bottom:20px">
         <div class="card-head">
-          <div class="card-title">주화 경매 입찰 한계가</div>
-          <span style="margin-left:auto;font-size:11px;color:var(--text-3)">낙찰금 22.5% 환급 · 100만G 시작 5% 상승</span>
+          <div class="card-title">주화 계시 경매 입찰 한계가</div>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-3)">낙찰금 22.5% 환급 · 100만G 시작 5% 상승 · 당첨 계시량별</span>
         </div>
         <div class="card-body" style="padding:0">
           <table class="data-table bid-table">
             <thead>
               <tr>
                 <th class="col-item">품목</th>
-                <th class="col-limit">가치</th>
-                <th class="col-next">마지막 입찰가</th>
-                <th class="col-meta">분배 / 실지출</th>
+                <th>안전 (최소)</th>
+                <th>중위</th>
+                <th>최대 🔥</th>
               </tr>
             </thead>
             <tbody id="bidBody"></tbody>

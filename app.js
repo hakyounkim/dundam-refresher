@@ -1089,13 +1089,14 @@ const SOUL_RARITY_COLOR = {
   rare:'#9ca3af', unique:'#fbbf24', legendary:'#fb923c',
   radiant:'#34d399', epic:'#c084fc', primordial:'#f87171',
 };
+// 당첨 계시량이 범위(랜덤) — 최소/중위/최대로 입찰가 3종 산출
 const SOUL_AUCTION_ITEMS = [
-  { name:'100 ~ 300 주화',  val:100 },
-  { name:'200 ~ 300 주화',  val:200 },
-  { name:'200 ~ 400 주화',  val:200 },
-  { name:'300 ~ 400 주화',  val:300 },
-  { name:'500 ~ 700 주화',  val:500 },
-  { name:'700 ~ 1000 주화', val:700 },
+  { name:'100 ~ 300 계시',  lo:100, hi:300 },
+  { name:'200 ~ 300 계시',  lo:200, hi:300 },
+  { name:'200 ~ 400 계시',  lo:200, hi:400 },
+  { name:'300 ~ 400 계시',  lo:300, hi:400 },
+  { name:'500 ~ 700 계시',  lo:500, hi:700 },
+  { name:'700 ~ 1000 계시', lo:700, hi:1000 },
 ];
 const fmtG = n => (n == null || Number.isNaN(+n)) ? '-' : Math.round(n).toLocaleString('ko-KR');
 
@@ -1108,6 +1109,7 @@ function lastSafeBid(limit) {
 }
 
 let soulLoaded = false;
+let soulData = null;   // 마지막 응답 보관 — 목표 수량 바뀌면 재페치 없이 재계산
 
 async function loadSoul() {
   const btn = $('#soulRefreshBtn');
@@ -1120,7 +1122,8 @@ async function loadSoul() {
     const res = await A.soul();
     if (res.error) throw new Error(res.error);
     $('#soulTs').textContent = res.timestamp ? `${res.timestamp} 기준` : '';
-    renderSoul(res.data || []);
+    soulData = res.data || [];
+    renderSoul(soulData);
     soulLoaded = true;
   } catch (e) {
     $('#soulTs').textContent = '오류';
@@ -1131,6 +1134,31 @@ async function loadSoul() {
   }
 }
 
+// 계시 목표 수량 (기본 1000, 슬라이더로 1000~100000) — 이만큼의 계시를 만들 소울을 싼 매물부터 쓸어담는 단가
+let soulTarget = 1000;
+function soulSweep(listings, exchange) {
+  const need = Math.ceil(soulTarget / exchange);   // 필요 소울 수
+  let left = need, gold = 0, got = 0;
+  const byPrice = new Map();
+  for (const x of (listings || [])) {
+    if (left <= 0) break;
+    const take = Math.min(left, x.count);
+    gold += take * x.unitPrice; got += take; left -= take;
+    byPrice.set(x.unitPrice, (byPrice.get(x.unitPrice) || 0) + take);
+  }
+  const enough = got >= need;
+  const tiers = [...byPrice.entries()].map(([price, cnt]) => ({ price, cnt }));
+  const maxCye = got * exchange;   // 현재 매물로 확보 가능한 계시량
+  return { need, got, gold, enough, tiers, maxCye, perCye: enough ? gold / soulTarget : null };
+}
+// 1시간 거래 요약 (수량가중)
+function soldSummary(sold) {
+  const cnt = (sold || []).length;
+  const qty = (sold || []).reduce((a, x) => a + x.count, 0);
+  const totGold = (sold || []).reduce((a, x) => a + x.unitPrice * x.count, 0);
+  return { cnt, qty, avg: qty ? Math.round(totGold / qty) : null };
+}
+
 function renderSoul(items) {
   if (!items.length) {
     $('#soulGrid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-title">데이터 없음</div></div>`;
@@ -1138,56 +1166,72 @@ function renderSoul(items) {
     $('#bidBody').innerHTML = '';
     return;
   }
-  const valid = items.filter(s => s.trade_value != null);
-  const best  = valid.length ? valid.reduce((a, b) => a.trade_value < b.trade_value ? a : b) : null;
+  const swept = items.map(s => ({ ...s, sw: soulSweep(s.listings, s.exchange) }));
+  const valid = swept.filter(s => s.sw.enough && s.sw.perCye != null);
+  const best  = valid.length ? valid.reduce((a, b) => a.sw.perCye < b.sw.perCye ? a : b) : null;
 
-  $('#soulBasis').textContent = best
-    ? `${best.name} · 계시 1개 ${fmtG(best.trade_value)} 골드`
+  $('#soulBasis').innerHTML = best
+    ? `${best.name} · 계시 1개 <b>${fmtG(best.sw.perCye)}G</b> <span style="color:var(--text-4)">(${fmtG(soulTarget)}계시 ${fmtG(best.sw.gold)}G)</span>`
     : '—';
 
-  $('#soulGrid').innerHTML = items.map(s => {
+  $('#soulGrid').innerHTML = swept.map(s => {
     const isBest = best && s.key === best.key;
     const color  = SOUL_RARITY_COLOR[s.key] || '#888';
+    const sw = s.sw;
+    const ss = soldSummary(s.sold1h);
+    const avgBuy = sw.got ? Math.round(sw.gold / sw.got) : null;   // 매입 소울 평균 단가
+    // 쓸어담기 칩 — 싼 쪽 일부만, 나머지는 요약 (목표 클 때 화면 폭주 방지)
+    const MAX_TIERS = 8;
+    const tierChip = t => `<span class="soul-tier"><b>${fmtG(t.price)}G</b><span class="soul-tier-x">×${fmtG(t.cnt)}</span></span>`;
+    let sweepHtml;
+    if (!sw.tiers.length) sweepHtml = '<span class="soul-detail-value" style="color:var(--text-4)">매물 없음</span>';
+    else if (sw.tiers.length <= MAX_TIERS) sweepHtml = sw.tiers.map(tierChip).join('');
+    else {
+      const maxPrice = sw.tiers[sw.tiers.length - 1].price;
+      const restQty = sw.tiers.slice(MAX_TIERS).reduce((a, t) => a + t.cnt, 0);
+      sweepHtml = sw.tiers.slice(0, MAX_TIERS).map(tierChip).join('')
+        + `<span class="soul-tier more">외 ${sw.tiers.length - MAX_TIERS}개 가격대 · ${fmtG(restQty)}개 · ~최고 ${fmtG(maxPrice)}G</span>`;
+    }
     return `
-      <div class="soul-card${isBest ? ' best' : ''}" data-soul-key="${s.key}">
+      <div class="soul-card open${isBest ? ' best' : ''}${sw.enough ? '' : ' short'}" data-soul-key="${s.key}">
         <div class="soul-card-head">
           <div class="soul-color-dot" style="background:${color}"></div>
           <span class="soul-card-name">${s.name}</span>
           ${isBest ? '<span class="soul-best-badge">최저</span>' : ''}
-          <span class="chevron">▼</span>
+          ${sw.enough ? '' : '<span class="soul-best-badge" style="background:oklch(0.55 0.18 25 / .18);color:#ff8a8a">물량부족</span>'}
         </div>
         <div class="soul-card-stats">
           <div class="soul-stat price">
             <span class="soul-stat-label">계시 단가</span>
-            <span class="soul-stat-value">${fmtG(s.trade_value)}G</span>
+            <span class="soul-stat-value">${sw.perCye != null ? fmtG(sw.perCye) + 'G' : '—'}</span>
           </div>
           <div class="soul-stat">
-            <span class="soul-stat-label">교환비</span>
-            <span class="soul-stat-value">÷${s.exchange}</span>
+            <span class="soul-stat-label">교환비 ÷${s.exchange}</span>
+            <span class="soul-stat-value">소울 ${fmtG(sw.need)}개</span>
           </div>
         </div>
         <div class="soul-detail">
           <div class="soul-detail-grid">
             <div class="soul-detail-row">
-              <span class="soul-detail-label">현재 경매 평균가</span>
-              <span class="soul-detail-value">${fmtG(s.average_price)}G (${s.auction_count ?? 0}건)</span>
+              <span class="soul-detail-label">매입 평균 단가</span>
+              <span class="soul-detail-value">${avgBuy != null ? fmtG(avgBuy) + 'G' : '—'}</span>
             </div>
             <div class="soul-detail-row">
-              <span class="soul-detail-label">현재 기준 계시 단가</span>
-              <span class="soul-detail-value">${fmtG(s.trade_value)}G</span>
+              <span class="soul-detail-label">${fmtG(soulTarget)}계시 총비용</span>
+              <span class="soul-detail-value">${fmtG(sw.gold)}G</span>
             </div>
             <div class="soul-detail-row">
-              <span class="soul-detail-label">최근 거래 평균가</span>
-              <span class="soul-detail-value">${fmtG(s.average_sold_price)}G (${s.sold_count ?? 0}건)</span>
+              <span class="soul-detail-label">확보 / 필요</span>
+              <span class="soul-detail-value">${fmtG(sw.got)} / ${fmtG(sw.need)}개 ${sw.enough ? '✅' : `❌ <span style="color:var(--text-4)">(매물로 ≈${fmtG(sw.maxCye)}계시)</span>`}</span>
             </div>
             <div class="soul-detail-row">
-              <span class="soul-detail-label">거래 기준 계시 단가</span>
-              <span class="soul-detail-value">${fmtG(s.sold_trade_value)}G</span>
+              <span class="soul-detail-label">최근 1시간 거래</span>
+              <span class="soul-detail-value">${ss.cnt ? `${ss.cnt}건 ${fmtG(ss.qty)}개 · 평균 ${fmtG(ss.avg)}G` : '없음'}</span>
             </div>
-            <div class="soul-detail-row" style="grid-column:1/-1">
-              <span class="soul-detail-label">최저가 / 최고가</span>
-              <span class="soul-detail-value">${fmtG(s.lowest_price)}G ~ ${fmtG(s.highest_price)}G</span>
-            </div>
+          </div>
+          <div class="soul-sweep">
+            <span class="soul-sweep-label">쓸어담기 <small>싼 매물부터</small></span>
+            <div class="soul-sweep-tiers">${sweepHtml}</div>
           </div>
         </div>
       </div>
@@ -1196,36 +1240,42 @@ function renderSoul(items) {
 
   // 입찰 한계가 계산
   if (best) {
-    const bestCost = best.trade_value;
-    const rows = SOUL_AUCTION_ITEMS.map(item => {
-      const minVal  = item.val * bestCost;
-      const limit   = Math.floor(minVal / 0.775);
-      const safeBid = lastSafeBid(limit);
-      const ok      = safeBid != null;
-      const payback = ok ? Math.floor(safeBid * 0.225) : null;
-      const net     = ok ? safeBid - payback : null;
-      return { ...item, minVal, limit, safeBid, payback, net, ok };
-    });
-    $('#bidBody').innerHTML = rows.map(r => `
-      <tr class="${r.ok ? '' : 'forbidden'}">
-        <td class="col-item">${r.name}</td>
-        <td class="col-limit">${fmtG(r.minVal)}G</td>
-        ${r.ok
-          ? `<td class="col-next">${fmtG(r.safeBid)}G</td>
-             <td class="col-meta">+${fmtG(r.payback)} / ${fmtG(r.net)}G</td>`
-          : `<td class="col-next" colspan="2" style="text-align:center;font-weight:700">입찰 금지</td>`}
-      </tr>
-    `).join('');
+    const bestCost = best.sw.perCye;
+    // 당첨 계시량 q일 때의 안전 입찰가 셀
+    const bidCell = (q, cls) => {
+      const val = q * bestCost;
+      const safeBid = lastSafeBid(Math.floor(val / 0.775));
+      if (safeBid == null) return `<td class="bid-cell forbidden"><span class="bid-price">입찰 금지</span><small>가치 ${fmtG(val)}G</small></td>`;
+      const net = safeBid - Math.floor(safeBid * 0.225);
+      return `<td class="bid-cell ${cls}"><span class="bid-price">${fmtG(safeBid)}G</span><small>실지출 ${fmtG(net)}G</small></td>`;
+    };
+    $('#bidBody').innerHTML = SOUL_AUCTION_ITEMS.map(item => {
+      const mid = Math.round((item.lo + item.hi) / 2);
+      return `
+        <tr>
+          <td class="col-item">${item.name}</td>
+          ${bidCell(item.lo, 'safe')}
+          ${bidCell(mid, 'mid')}
+          ${bidCell(item.hi, 'hot')}
+        </tr>`;
+    }).join('');
   } else {
     $('#bidBody').innerHTML = '';
   }
 }
 
-// 카드 클릭 → 펼치기
-document.addEventListener('click', e => {
-  const card = e.target.closest('.soul-card[data-soul-key]');
-  if (card) card.classList.toggle('open');
-});
+// 계시 목표 수량 슬라이더/입력 (재페치 없이 즉시 재계산)
+const clampSoulTarget = v => Math.max(1000, Math.min(100000, Math.round(v) || 1000));
+function applySoulTarget(v, syncText) {
+  soulTarget = clampSoulTarget(v);
+  const range = $('#soulTargetRange'), input = $('#soulTargetInput');
+  if (range) range.value = soulTarget;
+  if (syncText && input) input.value = soulTarget.toLocaleString('ko-KR');
+  if (soulData) renderSoul(soulData);
+}
+$('#soulTargetRange')?.addEventListener('input', () => applySoulTarget(+$('#soulTargetRange').value, true));
+$('#soulTargetInput')?.addEventListener('input', () => applySoulTarget(Number($('#soulTargetInput').value.replace(/[^\d]/g, '')), false));
+$('#soulTargetInput')?.addEventListener('blur', () => { $('#soulTargetInput').value = soulTarget.toLocaleString('ko-KR'); });
 
 // 새로고침 버튼
 $('#soulRefreshBtn')?.addEventListener('click', () => {

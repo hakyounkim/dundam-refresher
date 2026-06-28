@@ -119,12 +119,17 @@ window.Tobeol = (function () {
     if (c.buffScore) return 'buffer';
     return 'none';
   }
+  // 인챈트리스: buffScores=[2인,3인,4인] (높은→낮은). 그 외 버퍼는 단일 buffScore.
+  function buffArr(c) { return (Array.isArray(c.buffScores) && c.buffScores.length === 3) ? c.buffScores.map(P) : null; }
+  function buffVal(c, size) { const a = buffArr(c); if (!a) return P(c.buffScore); return size === 2 ? a[0] : size === 3 ? a[1] : a[2]; }
   function scoreOf(c) {
     const r = roleOf(c);
     if (r === 'dealer') return P(c.ozma);
-    if (r === 'buffer') return P(c.buffScore);
+    if (r === 'buffer') return buffVal(c, 4);   // 기본/최저(4인) 기준
     return null;
   }
+  // 업둥 수 → 파티 실인원(버프 기준): 2업=2인, 1업=3인, 일반=4인
+  const partySize = weak => weak === 2 ? 2 : weak === 1 ? 3 : 4;
 
   // ── 토벌권 배정 ──
   // 상급 토벌권: 캐릭은 '토벌권 사용 명성 컷'을 충족하는 가장 높은 토벌권 하나에 배정.
@@ -153,6 +158,9 @@ window.Tobeol = (function () {
     return Number(n).toLocaleString('ko-KR');
   }
   const fmtNum = n => (n == null ? '-' : Number(n).toLocaleString('ko-KR'));
+  // 버퍼 표기: 인챈트리스는 "4인 (2인)" · 그 외 단일값. 딜러는 fmtDeal.
+  function buffLabel(c) { const a = buffArr(c); return a ? `${fmtNum(a[2])} (${fmtNum(a[0])})` : fmtNum(scoreOf(c)); }
+  const valLabel = c => roleOf(c) === 'buffer' ? buffLabel(c) : fmtDeal(scoreOf(c));
 
   // ── 편집 입력 단위 변환 (딜컷=억, 버프력=만) + 콤마 ──
   const grp = n => (n == null || isNaN(n)) ? '' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 4 });
@@ -218,10 +226,17 @@ window.Tobeol = (function () {
         return { t, list, plan: planGroup(list, pairCuts(t.ids.map(dungeonById)), carryLevel(t.id)) };
       }),
     ];
+    // 커스텀 빌더용 모듈 상태 — innerHTML 빌드(customBody) 전에 세팅
+    keyMap = new Map(chars.map(c => [charKey(c), c]));
+    lastGroups = new Map(plans.map(p => [p.t.id, p.t]));
+    lastPlans = new Map(plans.map(p => [p.t.id, p.plan]));
+    lastChars = chars;
+    const listOf = id => (plans.find(p => p.t.id === id) || {}).list || [];
     root.innerHTML =
       editorHTML(sangTickets) +
       summaryHTML(activeChars, chars.length - activeChars.length) +
       summaryTobeolHTML(plans) +
+      rosterHTML(activeChars, buildAssign(plans)) +
       cardsHTML(plans) +
       matrixHTML(chars, sangTickets);
     bindEditor(chars);
@@ -238,6 +253,77 @@ window.Tobeol = (function () {
     document.querySelectorAll('#tobeolRoot [data-ex]').forEach(cb => cb.addEventListener('change', () => {
       toggleExclude(cb.dataset.ex);
       render(chars);
+    }));
+    bindCustom();
+  }
+
+  // 커스텀 빌더 이벤트 바인딩
+  function parseTarget(s) {
+    const a = s.split('|');
+    if (a[1] === 'pool') return { gid: a[0], pool: true };
+    return { gid: a[0], zone: a[1], pi: +a[2], slot: a[3], di: +a[4] };
+  }
+  const reRender = () => render(lastChars);
+  function bindCustom() {
+    const $$$ = sel => document.querySelectorAll('#tobeolRoot ' + sel);
+    $$$('[data-custom]').forEach(b => b.addEventListener('click', () => {
+      const g = lastGroups.get(b.dataset.custom); ensureCustom(g);
+      customData[g.id].mode = true;
+      const empty = groupZones(g).every(z => !customData[g.id][z].length);
+      if (empty) seedCustom(g, lastPlans.get(g.id));   // 처음 켜면 자동 추천으로 시드
+      saveCustom(); reRender();
+    }));
+    $$$('[data-autoview]').forEach(b => b.addEventListener('click', () => {
+      const g = lastGroups.get(b.dataset.autoview); ensureCustom(g);
+      customData[g.id].mode = false; saveCustom(); reRender();
+    }));
+    $$$('[data-seed]').forEach(b => b.addEventListener('click', () => {
+      const g = lastGroups.get(b.dataset.seed); seedCustom(g, lastPlans.get(g.id)); reRender();
+    }));
+    $$$('[data-clearc]').forEach(b => b.addEventListener('click', () => {
+      clearCustom(lastGroups.get(b.dataset.clearc)); reRender();
+    }));
+    $$$('[data-addparty]').forEach(b => b.addEventListener('click', () => {
+      const [gid, z] = b.dataset.addparty.split('|'); ensureCustom(lastGroups.get(gid));
+      customData[gid][z].push({ buffer: null, dealers: [null, null, null] }); saveCustom(); reRender();
+    }));
+    $$$('[data-delparty]').forEach(b => b.addEventListener('click', () => {
+      const [gid, z, pi] = b.dataset.delparty.split('|');
+      customData[gid][z].splice(+pi, 1); saveCustom(); reRender();
+    }));
+    // 드래그앤드롭
+    $$$('.tb-chip[draggable]').forEach(ch => {
+      ch.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', ch.dataset.char); e.dataTransfer.effectAllowed = 'move'; });
+    });
+    $$$('[data-drop]').forEach(zone => {
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('tb-dropon'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('tb-dropon'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        const key = e.dataTransfer.getData('text/plain'); if (!key) return;
+        const tgt = parseTarget(zone.dataset.drop); selKey = null;
+        moveChar(lastGroups.get(tgt.gid), key, tgt); reRender();
+      });
+    });
+    // 칩 클릭: 단일=선택(탭 이동용) · 더블=넣기/빼기 토글 (지연 판정)
+    $$$('.tb-chip[data-char]').forEach(ch => ch.addEventListener('click', e => {
+      e.stopPropagation();
+      const key = ch.dataset.char, gid = ch.dataset.g;
+      if (clickTimer && clickKey === key) {    // 같은 칩 두 번째 클릭 = 더블
+        clearTimeout(clickTimer); clickTimer = null; clickKey = null;
+        selKey = null; dblToggle(lastGroups.get(gid), key); reRender();
+      } else {
+        if (clickTimer) clearTimeout(clickTimer);
+        clickKey = key;
+        clickTimer = setTimeout(() => {        // 단일 = 선택
+          clickTimer = null; clickKey = null; selKey = (selKey === key) ? null : key; reRender();
+        }, 220);
+      }
+    }));
+    $$$('[data-drop]').forEach(zone => zone.addEventListener('click', () => {
+      if (!selKey) return;
+      const tgt = parseTarget(zone.dataset.drop); const key = selKey; selKey = null;
+      moveChar(lastGroups.get(tgt.gid), key, tgt); reRender();
     }));
   }
 
@@ -376,7 +462,7 @@ window.Tobeol = (function () {
   }
 
   // ── 벞교 추천 카드 (명성대별 파티 + 단품 + 토벌권) ──
-  const soloTag = c => `<span class="tb-tag solo">${roleOf(c) === 'buffer' ? '🛡' : '⚔'} ${esc(nameOf(c))} <em>${roleOf(c) === 'buffer' ? fmtNum(scoreOf(c)) : fmtDeal(scoreOf(c))}</em></span>`;
+  const soloTag = c => `<span class="tb-tag solo">${roleOf(c) === 'buffer' ? '🛡' : '⚔'} ${esc(nameOf(c))} <em>${valLabel(c)}</em></span>`;
   const dealerTag = (c, isUp) => `<span class="tb-tag ${isUp ? 'up' : 'deal'}">⚔ ${esc(nameOf(c))} <em>${fmtDeal(scoreOf(c))}</em>${isUp ? ' 업' : ''}</span>`;
 
   // 단품(컷)까지 부족분 문자열 — 딜러: 억, 버퍼: 만
@@ -389,8 +475,145 @@ window.Tobeol = (function () {
   // cut(=단품 기준) 대비 부족분을 함께 보여주는 태그 목록
   const chTags = (arr, cls, cut) => `<div class="tb-sololist">${arr.map(c => {
     const gap = cut != null ? gapStr(c, cut) : '';
-    return `<span class="tb-tag ${cls}">${roleOf(c) === 'buffer' ? '🛡' : '⚔'} ${esc(nameOf(c))} <em>${roleOf(c) === 'buffer' ? fmtNum(scoreOf(c)) : fmtDeal(scoreOf(c))}</em>${gap ? ` <em class="tb-gap" title="단품까지 ${gap}">${gap}</em>` : ''}</span>`;
+    return `<span class="tb-tag ${cls}">${roleOf(c) === 'buffer' ? '🛡' : '⚔'} ${esc(nameOf(c))} <em>${valLabel(c)}</em>${gap ? ` <em class="tb-gap" title="단품까지 ${gap}">${gap}</em>` : ''}</span>`;
   }).join('')}</div>`;
+
+  // ════════════════════════════════════════════════════════════
+  //  커스텀 파티 빌더 (드래그앤드롭 + 탭)
+  // ════════════════════════════════════════════════════════════
+  const CUSTOM_KEY = 'df_tobeol_custom_v1';
+  let customData = (function () { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}'); } catch { return {}; } })();
+  function saveCustom() { localStorage.setItem(CUSTOM_KEY, JSON.stringify(customData)); }
+  let keyMap = new Map();          // charKey → char (render마다 갱신)
+  let lastGroups = new Map();      // groupId → group(t)
+  let lastPlans = new Map();       // groupId → plan
+  let lastChars = [];              // 재렌더용
+  let selKey = null;               // 탭 선택 상태
+  let clickTimer = null, clickKey = null;  // 단일/더블 클릭 판정
+
+  const groupZones = g => g.legion ? ['legion3', 'legion2'] : ['main'];
+  const zoneCuts = z => {
+    if (z === 'legion3' || z === 'legion2') { const d = dungeonById(z); return { normal: d.cutNormal, cut1: d.cut1, cut2: d.cut2, buff: d.buffCut }; }
+    return null; // main 은 그룹별 pairCuts 사용
+  };
+  function ensureCustom(g) {
+    if (!customData[g.id]) customData[g.id] = { mode: false };
+    groupZones(g).forEach(z => { if (!customData[g.id][z]) customData[g.id][z] = []; });
+    return customData[g.id];
+  }
+  const isCustom = g => !!(customData[g.id] && customData[g.id].mode);
+  function assignedKeys(g) {
+    const set = new Set(); const d = customData[g.id] || {};
+    groupZones(g).forEach(z => (d[z] || []).forEach(p => { if (p.buffer) set.add(p.buffer); p.dealers.forEach(k => k && set.add(k)); }));
+    return set;
+  }
+  const poolKeys = (g, list) => { const a = assignedKeys(g); return list.map(charKey).filter(k => !a.has(k)); };
+  // 그룹 멤버가 아닌(배제/이탈) 키 정리
+  function pruneCustom(g, list) {
+    ensureCustom(g);
+    const valid = new Set(list.map(charKey));
+    groupZones(g).forEach(z => customData[g.id][z].forEach(p => {
+      if (p.buffer && !valid.has(p.buffer)) p.buffer = null;
+      p.dealers = p.dealers.map(k => (k && valid.has(k)) ? k : null);
+    }));
+  }
+  function seedCustom(g, plan) {
+    ensureCustom(g);
+    const toP = p => ({ buffer: p.buffer ? charKey(p.buffer) : null, dealers: [0, 1, 2].map(i => p.dealers[i] ? charKey(p.dealers[i]) : null) });
+    if (g.legion) { customData[g.id].legion3 = (plan.parties3 || []).map(toP); customData[g.id].legion2 = (plan.parties2 || []).map(toP); }
+    else customData[g.id].main = (plan.parties || []).map(toP);
+    saveCustom();
+  }
+  function clearCustom(g) { ensureCustom(g); groupZones(g).forEach(z => customData[g.id][z] = []); saveCustom(); }
+  function removeKeyFromGroup(g, key) {
+    const d = customData[g.id] || {};
+    groupZones(g).forEach(z => (d[z] || []).forEach(p => { if (p.buffer === key) p.buffer = null; p.dealers = p.dealers.map(k => k === key ? null : k); }));
+  }
+  // target: {pool:true} | {zone,pi,slot:'buffer'|'dealer',di}
+  function moveChar(g, key, target) {
+    if (!key) return;
+    if (target && !target.pool) {
+      const r = roleOf(keyMap.get(key));
+      if (target.slot === 'buffer' && r !== 'buffer') return;  // 버퍼 슬롯엔 버퍼만
+      if (target.slot === 'dealer' && r !== 'dealer') return;  // 딜 슬롯엔 딜러만
+    }
+    removeKeyFromGroup(g, key);
+    if (target && !target.pool) {
+      const p = (customData[g.id][target.zone] || [])[target.pi]; if (!p) return;
+      if (target.slot === 'buffer') p.buffer = key;            // 점유자는 자동으로 풀행
+      else p.dealers[target.di] = key;
+    }
+    saveCustom();
+  }
+
+  // 더블클릭 토글: 배치돼 있으면 풀로 빼고, 풀에 있으면 첫 빈 슬롯(역할 맞는)으로 넣기(없으면 새 파티)
+  function dblToggle(g, key) {
+    ensureCustom(g);
+    const r = roleOf(keyMap.get(key));
+    if (r === 'none') return;
+    if (assignedKeys(g).has(key)) { removeKeyFromGroup(g, key); saveCustom(); return; }
+    for (const z of groupZones(g)) {
+      for (const p of customData[g.id][z]) {
+        if (r === 'buffer' && !p.buffer) { p.buffer = key; saveCustom(); return; }
+        if (r === 'dealer') { const di = p.dealers.findIndex(x => !x); if (di >= 0) { p.dealers[di] = key; saveCustom(); return; } }
+      }
+    }
+    const z = groupZones(g)[0];           // 빈 슬롯 없으면 새 파티
+    const np = { buffer: null, dealers: [null, null, null] };
+    if (r === 'buffer') np.buffer = key; else np.dealers[0] = key;
+    customData[g.id][z].push(np); saveCustom();
+  }
+
+  // 파티 클리어 판정
+  function validateParty(p, cuts) {
+    const dealers = p.dealers.filter(Boolean).map(k => keyMap.get(k)).filter(Boolean);
+    const buf = p.buffer ? keyMap.get(p.buffer) : null;
+    if (!buf || dealers.length < 3) return { cls: 'warn', label: `미완성 (버퍼 ${buf ? 'O' : 'X'} · 딜 ${dealers.length}/3)` };
+    const weak = dealers.filter(c => (scoreOf(c) || 0) < cuts.normal).length;
+    const strong = dealers.filter(c => (scoreOf(c) || 0) >= cuts.normal).sort((a, b) => (scoreOf(b) || 0) - (scoreOf(a) || 0));
+    let ok;
+    if (weak === 0) ok = true;
+    else if (weak === 1) ok = strong.length >= 2 && (scoreOf(strong[1]) || 0) >= cuts.cut1;
+    else if (weak === 2) ok = strong.length >= 1 && (scoreOf(strong[0]) || 0) >= cuts.cut2;
+    else ok = false;
+    const updown = weak === 0 ? '일반' : `${weak}업`;
+    const buffWarn = buffVal(buf, partySize(weak)) < cuts.buff ? ' · 버퍼 약함' : '';   // 인원 적을수록 높은 버프
+    return ok ? { cls: 'ok', label: `✓ 클리어 ${updown}${buffWarn}` } : { cls: 'bad', label: `✗ 딜 부족 (${updown} 캐리어 미달)` };
+  }
+
+  // 커스텀 빌더 본문
+  function customBody(g, list) {
+    pruneCustom(g, list);
+    const zoneLabel = { main: '', legion3: '3단 ', legion2: '2단 ' };
+    const chip = key => {
+      const c = keyMap.get(key); if (!c) return '';
+      const r = roleOf(c);
+      return `<span class="tb-chip ${r === 'buffer' ? 'buff' : 'deal'}${selKey === key ? ' sel' : ''}" draggable="true" data-char="${esc(key)}" data-g="${g.id}" title="더블클릭: 넣기/빼기">${r === 'buffer' ? '🛡' : '⚔'} ${esc(nameOf(c))} <em>${valLabel(c)}</em></span>`;
+    };
+    const slot = (z, pi, slotType, di, key) =>
+      `<span class="tb-slot ${slotType}${key ? '' : ' empty'}" data-drop="${g.id}|${z}|${pi}|${slotType}|${di}">${key ? chip(key) : `<span class="tb-slot-empty">${slotType === 'buffer' ? '버퍼' : '딜'}</span>`}</span>`;
+    const zonesHTML = groupZones(g).map(z => {
+      const cuts = z === 'main' ? pairCuts(g.ids.map(dungeonById)) : zoneCuts(z);
+      const parties = customData[g.id][z];
+      const rows = parties.map((p, pi) => {
+        const v = validateParty(p, cuts);
+        return `<div class="tb-cparty">
+          <span class="tb-cparty-v ${v.cls}">${v.label}</span>
+          ${slot(z, pi, 'buffer', 0, p.buffer)}${[0, 1, 2].map(di => slot(z, pi, 'dealer', di, p.dealers[di])).join('')}
+          <button class="tb-cpx" title="파티 삭제" data-delparty="${g.id}|${z}|${pi}">✕</button>
+        </div>`;
+      }).join('') || '<div class="tb-dim tb-pad">파티 없음 — 아래 버튼으로 추가하거나 자동 추천을 불러오세요</div>';
+      return `<div class="tb-sec-label">${zoneLabel[z]}직접 편성 파티</div>${rows}<button class="tb-addparty" data-addparty="${g.id}|${z}">+ 파티 추가</button>`;
+    }).join('');
+    const pool = poolKeys(g, list);
+    const poolHTML = `<div class="tb-sec-label">미배치 (${pool.length})</div><div class="tb-pool" data-drop="${g.id}|pool">${pool.map(chip).join('') || '<span class="tb-dim">없음</span>'}</div>`;
+    const btns = `<div class="tb-cbtns">
+      <button class="btn ghost sm" data-seed="${g.id}">자동 추천 불러오기</button>
+      <button class="btn ghost sm" data-clearc="${g.id}">비우기</button>
+      <span class="tb-dim">칩을 끌어다 놓거나(드래그) 탭해서 선택 후 슬롯을 누르세요</span>
+    </div>`;
+    return zonesHTML + poolHTML + btns;
+  }
 
   // 파티 목록 렌더
   function renderParties(parties, emptyMsg) {
@@ -398,7 +621,7 @@ window.Tobeol = (function () {
     return parties.map((p, i) => `
       <div class="tb-set">
         <span class="tb-set-no">${i + 1} <span class="tb-up ${p.type === '일반' ? 'norm' : ''}">${p.type}</span></span>
-        <span class="tb-tag buff">🛡 ${esc(nameOf(p.buffer))} <em>${fmtNum(scoreOf(p.buffer))}</em></span>
+        <span class="tb-tag buff">🛡 ${esc(nameOf(p.buffer))} <em>${buffLabel(p.buffer)}</em></span>
         ${p.dealers.map(dl => dealerTag(dl, p.ups.includes(dl))).join('')}
       </div>`).join('');
   }
@@ -418,7 +641,11 @@ window.Tobeol = (function () {
     }
     const cutLines = dgs.map(d =>
       `<div class="tb-card-cuts"><b>${esc(shortName(d.name))}</b> · 일반 ${fmtDeal(d.cutNormal)} · 1업 ${fmtDeal(d.cut1)} · 2업 ${fmtDeal(d.cut2)} · 버프 ${fmtNum(d.buffCut)}</div>`).join('');
+    const custom = isCustom(t);
     const carryToggle = `<label class="tb-carry" title="업둥(약캐) 캐리 정책 — 끄면 토벌권/쩔로 보냄">업둥 <select data-carry="${t.id}"><option value="2" ${lvl === 2 ? 'selected' : ''}>2업까지</option><option value="1" ${lvl === 1 ? 'selected' : ''}>1업까지</option><option value="0" ${lvl === 0 ? 'selected' : ''}>끔</option></select></label>`;
+    const controls = custom
+      ? `<button class="btn ghost sm" data-autoview="${t.id}">↩ 자동 추천</button>`
+      : `${carryToggle}<button class="btn ghost sm" data-custom="${t.id}">✏️ 직접 편성</button>`;
 
     let body;
     if (leg) {
@@ -449,17 +676,71 @@ window.Tobeol = (function () {
     return `
       <div class="tb-card ${leg ? 'legion' : ''}">
         <div class="tb-card-head">
-          <div class="tb-card-titlerow">${titleLine}${carryToggle}</div>
+          <div class="tb-card-titlerow">${titleLine}<span class="tb-controls">${controls}</span></div>
           <div class="tb-card-cuts">${leg ? '입장' : '명성'} <b>${fmtNum(t.fame)}</b> 이상 · ${list.length}명</div>
           ${cutLines}
         </div>
-        ${body}
+        ${custom ? customBody(t, list) : body}
       </div>`;
   }
 
   function cardsHTML(plans) {
     const cards = plans.map(p => groupCard(p.t, p.list, p.plan)).join('');
-    return `<div class="tb-sec-title">벞교 추천 <small class="tb-dim" style="font-weight:600">— 명성대별 파티 구성(업둥 포함) · 단품 · 토벌권</small></div><div class="tb-cards">${cards}</div>`;
+    return `<details class="tb-detail" open><summary class="tb-sec-title">벞교 추천 — 파티 상세 <small class="tb-dim" style="font-weight:600">(명성대별 파티·단품·토벌권 / 직접 편성)</small></summary><div class="tb-cards">${cards}</div></details>`;
+  }
+
+  // ── 통합 운영표: 캐릭별 상급/레기온 배정 한눈에 ──
+  function buildAssign(plans) {
+    const m = new Map();
+    const set = (c, kind, label, cls) => { if (!c) return; const k = charKey(c); const e = m.get(k) || {}; e[kind] = { label, cls }; m.set(k, e); };
+    const party = (p, i, prefix) => {
+      const lbl = `${prefix}${p.type}#${i + 1}`;
+      set(p.buffer, prefix.includes('단') ? 'legion' : 'sang', lbl, 'party');
+      p.dealers.forEach(c => set(c, prefix.includes('단') ? 'legion' : 'sang', lbl, p.ups.includes(c) ? 'up' : 'party'));
+    };
+    plans.forEach(({ t, plan }) => {
+      if (t.legion) {
+        (plan.parties3 || []).forEach((p, i) => party(p, i, '3단 '));
+        (plan.solo3 || []).forEach(c => set(c, 'legion', '3단 단품', 'solo'));
+        (plan.parties2 || []).forEach((p, i) => party(p, i, '2단 '));
+        (plan.solo2 || []).forEach(c => set(c, 'legion', '2단 단품', 'solo'));
+        (plan.fallback || []).forEach(f => set(f.c, 'legion', f.how === '토벌권' ? '🎫 토벌권' : '쩔', f.how === '토벌권' ? 'tobeol' : 'jjeol'));
+        (plan.buffersIdle || []).forEach(c => set(c, 'legion', '버퍼 대기', 'idle'));
+      } else {
+        const g = t.label;
+        (plan.parties || []).forEach((p, i) => {
+          const lbl = `${g} ${p.type}#${i + 1}`;
+          set(p.buffer, 'sang', lbl, 'party');
+          p.dealers.forEach(c => set(c, 'sang', lbl, p.ups.includes(c) ? 'up' : 'party'));
+        });
+        (plan.solo || []).forEach(c => set(c, 'sang', `${g} 단품`, 'solo'));
+        (plan.tobeol || []).forEach(c => set(c, 'sang', `${g} 🎫토벌권`, 'tobeol'));
+        (plan.buffersIdle || []).forEach(c => set(c, 'sang', `${g} 버퍼 대기`, 'idle'));
+      }
+    });
+    return m;
+  }
+
+  function rosterHTML(chars, am) {
+    const sorted = [...chars].sort((a, b) => (b.fame || 0) - (a.fame || 0));
+    const cell = a => a ? `<span class="tb-as ${a.cls}">${esc(a.label)}</span>` : '<span class="tb-as none">—</span>';
+    const rows = sorted.map(c => {
+      const e = am.get(charKey(c)) || {};
+      return `<tr>
+        <td class="tb-name">${esc(nameOf(c))}</td>
+        <td class="tb-job">${esc((c.jobGrowName || '').replace('眞 ', ''))}</td>
+        <td class="tb-num">${fmtNum(c.fame)}</td>
+        <td class="tb-num">${valLabel(c)}</td>
+        <td>${cell(e.sang)}</td>
+        <td>${cell(e.legion)}</td>
+      </tr>`;
+    }).join('');
+    return `
+      <div class="tb-sec-title">📋 주간 운영표 <small class="tb-dim" style="font-weight:600">— 캐릭별 상급·레기온 배정 한눈에</small></div>
+      <div class="tb-table-wrap"><table class="tb-matrix">
+        <thead><tr><th>캐릭</th><th>직업</th><th>명성</th><th>딜/버프</th><th>상급 배정</th><th>레기온 배정</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
   }
 
   // ── 캐릭터 × 던전 매트릭스 ──
@@ -470,7 +751,7 @@ window.Tobeol = (function () {
       const ex = isExcluded(c);
       const role = roleOf(c);
       const roleLbl = role === 'dealer' ? '<span class="tb-role deal">딜</span>' : role === 'buffer' ? '<span class="tb-role buff">버퍼</span>' : '<span class="tb-role">-</span>';
-      const scoreLbl = role === 'buffer' ? fmtNum(scoreOf(c)) : role === 'dealer' ? fmtDeal(scoreOf(c)) : '-';
+      const scoreLbl = role === 'buffer' ? buffLabel(c) : role === 'dealer' ? fmtDeal(scoreOf(c)) : '-';
       const cells = dungeons.map(d => {
         const s = statusOf(c, d, tickets);
         if (s.kind === 'locked') return `<td class="tb-cell lock" title="명성 ${fmtNum(s.shortBy)} 부족">🔒<small>+${fmtNum(s.shortBy)}</small></td>`;
@@ -637,6 +918,32 @@ window.Tobeol = (function () {
     #pane-tobeol .tb-carry select{background:var(--surface,#13151b);border:1px solid var(--border,#2a2e38);border-radius:6px;padding:2px 6px;color:var(--text-1,#e8ebf0);font-size:12px;font-weight:700;cursor:pointer}
     #pane-tobeol tr.tb-exrow{opacity:.4}
     #pane-tobeol .tb-ex{cursor:pointer}
+    #pane-tobeol .tb-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    #pane-tobeol .tb-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;border:1px solid var(--border,#2a2e38);background:var(--surface-3,#262a34);cursor:grab;user-select:none}
+    #pane-tobeol .tb-chip.deal{border-color:color-mix(in oklab,#ff8a5f 30%,transparent)}
+    #pane-tobeol .tb-chip.buff{border-color:color-mix(in oklab,#5fa8ff 40%,transparent)}
+    #pane-tobeol .tb-chip.sel{outline:2px solid var(--accent,#7c9cff);outline-offset:1px}
+    #pane-tobeol .tb-chip em{font-style:normal;color:var(--text-3,#9aa3b2)}
+    #pane-tobeol .tb-cparty{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 0;border-top:1px dashed var(--border,#2a2e38)}
+    #pane-tobeol .tb-cparty-v{font-size:11px;font-weight:800;min-width:140px}
+    #pane-tobeol .tb-cparty-v.ok{color:#5fd08a}#pane-tobeol .tb-cparty-v.bad{color:#ff7a7a}#pane-tobeol .tb-cparty-v.warn{color:#e6b85f}
+    #pane-tobeol .tb-slot{display:inline-flex;align-items:center;justify-content:center;min-width:70px;min-height:30px;border:1px dashed var(--border,#2a2e38);border-radius:8px;padding:2px}
+    #pane-tobeol .tb-slot.buffer{border-color:color-mix(in oklab,#5fa8ff 35%,var(--border,#2a2e38))}
+    #pane-tobeol .tb-slot-empty{font-size:10px;color:var(--text-4,#6b7280);padding:2px 10px}
+    #pane-tobeol .tb-dropon{background:color-mix(in oklab,var(--accent,#7c9cff) 16%,transparent);border-color:var(--accent,#7c9cff)}
+    #pane-tobeol .tb-pool{display:flex;flex-wrap:wrap;gap:5px;min-height:36px;border:1px dashed var(--border,#2a2e38);border-radius:10px;padding:8px}
+    #pane-tobeol .tb-cbtns{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+    #pane-tobeol .tb-cpx{background:none;border:none;color:var(--text-4,#6b7280);cursor:pointer;font-size:13px;padding:2px 4px}
+    #pane-tobeol .tb-addparty{margin-top:6px;background:var(--surface-3,#262a34);border:1px solid var(--border,#2a2e38);border-radius:8px;padding:5px 12px;color:var(--text-2,#c7cdd8);font-size:12px;font-weight:700;cursor:pointer}
+    #pane-tobeol .tb-detail>summary{cursor:pointer;list-style:revert}
+    #pane-tobeol .tb-as{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:7px;background:var(--surface-3,#262a34)}
+    #pane-tobeol .tb-as.party{color:#7fbcff;background:color-mix(in oklab,#5fa8ff 12%,var(--surface-3,#262a34))}
+    #pane-tobeol .tb-as.up{color:#e6b85f;background:color-mix(in oklab,#e6b85f 14%,var(--surface-3,#262a34))}
+    #pane-tobeol .tb-as.solo{color:#5fd08a;background:color-mix(in oklab,#5fd08a 12%,var(--surface-3,#262a34))}
+    #pane-tobeol .tb-as.tobeol{color:#c8a0ff;background:color-mix(in oklab,#c08aff 14%,var(--surface-3,#262a34))}
+    #pane-tobeol .tb-as.jjeol{color:#ff9d9d;background:color-mix(in oklab,#ff7a7a 14%,var(--surface-3,#262a34))}
+    #pane-tobeol .tb-as.idle{color:#9aa3b2;background:color-mix(in oklab,#9aa3b2 12%,var(--surface-3,#262a34))}
+    #pane-tobeol .tb-as.none{color:var(--text-4,#6b7280);background:none}
     #pane-tobeol .tb-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--surface-3,#262a34);color:var(--text-3,#9aa3b2)}
     #pane-tobeol .tb-badge.sm{font-size:9px;padding:1px 6px}
     #pane-tobeol .tb-card-cuts{font-size:11px;color:var(--text-3,#9aa3b2);margin-top:4px}
