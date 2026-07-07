@@ -134,7 +134,7 @@ function tierColorKey(tier) {
   return String(tier).split('-')[0];
 }
 
-// 12개 세트군 아이콘 매핑 (로컬 호스팅: /img/set/{N}.png)
+// 12개 세트군 아이콘 매핑 (로컬 호스팅: img/set/{N}.png — 상대경로)
 // 원본은 던담(dundam.xyz/img/lv115/set/{N}.png)에서 받아 프로젝트 루트에 보관 — 핫링크 피하려고 자체 서빙.
 // 세트 이름 + 서약 옵션 이름까지 같이 매칭 (서약 3개 = 세트 1개와 같은 아이콘)
 const DUNDAM_SET_ICONS = [
@@ -165,7 +165,35 @@ function getDundamSetIconUrl(name) {
   }
   if (!allMatches.length) return null;
   allMatches.sort((a, b) => b.len - a.len);
-  return `/img/set/${allMatches[0].n}.png`;
+  return `img/set/${allMatches[0].n}.png`;
+}
+
+// 서약 진의 옵션 번호 (1/2/3) — 세트군마다 3개 옵션이 순서대로 있음
+// 예: 황금향 = 끝나지 않은 꿈(1) / 황금의 세계(2) / 숭배하라, 세상의 왕을(3)
+const OATH_OPTION_NO = [
+  { no: 1, keys: ['끝나지 않은 꿈'] }, { no: 2, keys: ['황금의 세계'] }, { no: 3, keys: ['숭배하라, 세상의 왕을', '숭배하라'] },
+  { no: 1, keys: ['심연의 타락'] }, { no: 2, keys: ['찬란한 정화'] }, { no: 3, keys: ['혼돈의 운명'] }, { no: 3, keys: ['혼돈'] },
+  { no: 1, keys: ['찬란한 운명'] }, { no: 2, keys: ['일궈낸 운명'] },
+  { no: 1, keys: ['압도적인 힘'] }, { no: 2, keys: ['무한동력'] }, { no: 3, keys: ['오버로드'] },
+  { no: 1, keys: ['노블 엠프레스'] }, { no: 2, keys: ['로열가드'] }, { no: 3, keys: ['페어리 랜드'] },
+  { no: 1, keys: ['자연의 벗'] }, { no: 2, keys: ['기상 이변'] }, { no: 3, keys: ['아마겟돈'] },
+  { no: 1, keys: ['종말의 날'] }, { no: 2, keys: ['천벌의 날개'] }, { no: 3, keys: ['심판의 창'] },
+  { no: 1, keys: ['환상'] }, { no: 2, keys: ['초월'] }, { no: 3, keys: ['집중'] },
+  { no: 1, keys: ['배후 습격'] }, { no: 2, keys: ['죽음의 형상'] }, { no: 3, keys: ['그림자 동화'] },
+  { no: 1, keys: ['고독한 사냥꾼'] }, { no: 2, keys: ['길잡이의 조력자'] }, { no: 3, keys: ['길잡이의 계승자'] },
+  { no: 1, keys: ['매지컬 프리즘'] }, { no: 2, keys: ['미스틱 웨폰'] }, { no: 3, keys: ['매직 컨트롤'] },
+  { no: 1, keys: ['용제 강림'] }, { no: 2, keys: ['세계를 태우는 불꽃'] }, { no: 3, keys: ['싸워야만 하는 운명'] },
+];
+// 옵션명(setOptionName, prefix 유무 무관)에서 진의 번호 반환. 가장 긴 키워드 우선.
+function getOathOptionNo(name) {
+  if (!name) return null;
+  let best = null;
+  for (const { no, keys } of OATH_OPTION_NO) {
+    for (const k of keys) {
+      if (name.includes(k) && (!best || k.length > best.len)) best = { no, len: k.length };
+    }
+  }
+  return best?.no ?? null;
 }
 
 // 등급명(한국어) → rarity css class
@@ -217,6 +245,7 @@ return {
   getMist,
   getSetIconItemId,
   getDundamSetIconUrl,
+  getOathOptionNo,
   isBuffChar,
   pickStat,
   coreStats,

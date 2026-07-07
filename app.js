@@ -80,8 +80,9 @@ function avatarHTML(c, variant) {
   // variant: 'head' = 행 뷰용 머리 확대, undefined = 기본 (전신, 카드용)
   const name = c.characterName || c.name || '?';
   const hue = strHue(name);
-  const bg = `oklch(0.45 0.12 ${hue})`;
-  const fg = `oklch(0.92 0.04 ${hue})`;
+  // 채도 낮은 중성 톤 — 디자인 시스템(게이밍풍 고채도 금지) 준수, 이름별 미묘한 색조만
+  const bg = `oklch(0.32 0.03 ${hue})`;
+  const fg = `oklch(0.78 0.04 ${hue})`;
   const initial = name[0];
   const baseStyle = `background:transparent;color:${fg};width:100%;height:100%;display:grid;place-items:center;font-weight:800;position:relative;overflow:hidden`;
   const serverId = c.serverId || c.server;
@@ -129,6 +130,9 @@ function tierToRarityClass(tier) {
 const state = {
   tab: 'refresh',
   viewMode: 'grid',           // 'grid' | 'row'
+  charFilter: 'all',          // 'all' | 'dealer' | 'buffer'
+  charSort: 'dundam',         // 'dundam' | 'fame' | 'deal' | 'buff'
+  charSortDir: 'desc',        // 'desc' | 'asc'
   adventureName: null,
   adventureServers: [],
   characters: [],         // [{characterId, serverId, characterName, jobGrowName, fame, ...}]
@@ -340,19 +344,9 @@ function renderRefreshStats() {
       <span class="kpi-foot">${state.adventureName} · ${svKr}</span>
     </div>
     <div class="kpi">
-      <span class="kpi-label">최고 명성</span>
-      <span class="kpi-value num accent">${fmt(top?.fame)}</span>
-      <span class="kpi-foot">${top?.characterName || '-'}${top?.jobGrowName ? ' · ' + top.jobGrowName : ''}</span>
-    </div>
-    <div class="kpi">
-      <span class="kpi-label">최근 동기화</span>
-      <span class="kpi-value num" style="font-size:22px">${fmtAgo(state.lastSyncAt)}</span>
-      <span class="kpi-foot">${state.lastSyncAt ? fmtTime(new Date(state.lastSyncAt).toISOString()) + ' 기준' : '검색을 실행해주세요'}</span>
-    </div>
-    <div class="kpi">
-      <span class="kpi-label">갱신 필요</span>
-      <span class="kpi-value num">${stale}<span style="font-size:14px;color:var(--text-3);font-weight:500"> / ${chars.length}</span></span>
-      <span class="kpi-foot">${updated > 0 ? `${updated}명 갱신 완료` : '아직 갱신 안 함'}</span>
+      <span class="kpi-label">갱신 현황</span>
+      <span class="kpi-value num">${updated}<span style="font-size:14px;color:var(--text-3);font-weight:500"> / ${chars.length}</span></span>
+      <span class="kpi-foot">${stale > 0 ? `${stale}명 갱신 필요` : '전원 갱신 완료'} · ${fmtAgo(state.lastSyncAt)}</span>
     </div>
   `;
 }
@@ -369,8 +363,43 @@ function renderAdvTag() {
 }
 
 // ── Char card/row grid ──
+// 필터(전체/딜러/버퍼) + 정렬(던담순/명성순/딜·버프순) 적용된 목록
+function isBufferChar(c) {
+  return c.buffScore != null || (Array.isArray(c.buffScores) && c.buffScores.length > 0);
+}
+function powerValueOf(c) {
+  // 버퍼 = 버프점수(대표: 4인 또는 단일), 딜러 = 딜(ozma)
+  if (isBufferChar(c)) {
+    const bs = Array.isArray(c.buffScores) && c.buffScores.length ? c.buffScores[c.buffScores.length - 1] : c.buffScore;
+    return parseDundamNum(bs) ?? 0;
+  }
+  return parseDundamNum(c.ozma) ?? 0;
+}
+function visibleCharacters() {
+  let list = state.characters.slice();
+  // 딜/버프 모드는 필터를 겸함
+  if (state.charSort === 'deal') list = list.filter(c => !isBufferChar(c));
+  else if (state.charSort === 'buff') list = list.filter(isBufferChar);
+  else if (state.charFilter === 'dealer') list = list.filter(c => !isBufferChar(c));
+  else if (state.charFilter === 'buffer') list = list.filter(isBufferChar);
+  const dir = state.charSortDir === 'asc' ? -1 : 1;   // desc 기본, asc면 뒤집기
+  if (state.charSort === 'fame') {
+    list.sort((a, b) => ((b.fame || 0) - (a.fame || 0)) * dir);
+  } else if (state.charSort === 'deal' || state.charSort === 'buff') {
+    // 필터된 동일 그룹이므로 값 스케일 일관 → 단순 파워 정렬
+    list.sort((a, b) => (powerValueOf(b) - powerValueOf(a)) * dir);
+  } else if (state.charSortDir === 'asc') {
+    list.reverse();   // 'dundam' 역순
+  }
+  // 'dundam' + desc = 원본 순서 유지
+  return list;
+}
+
 function renderCharCards() {
-  if (state.viewMode === 'row') return renderCharRows();
+  if (typeof updateFilterRowVisibility === 'function') updateFilterRowVisibility();
+  // 모바일(≤560px)은 행 뷰 부적합 → 카드 뷰 강제
+  const isMobile = window.matchMedia('(max-width:560px)').matches;
+  if (state.viewMode === 'row' && !isMobile) return renderCharRows();
   $('#charGrid').style.display = '';
   $('#charRows').style.display = 'none';
   const wrap = $('#charGrid');
@@ -384,7 +413,17 @@ function renderCharCards() {
     `;
     return;
   }
-  wrap.innerHTML = state.characters.map(c => cardHTML(c)).join('');
+  const list = visibleCharacters();
+  if (!list.length) {
+    wrap.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-state-title">해당 조건의 캐릭터가 없어요</div>
+        <div class="empty-state-sub">필터를 바꿔보세요</div>
+      </div>
+    `;
+    return;
+  }
+  wrap.innerHTML = list.map(c => cardHTML(c)).join('');
   // bind clicks — 카드 자체 = 체크 토글 (default), 디테일 버튼만 모달 오픈
   wrap.querySelectorAll('.char-card').forEach(card => {
     const id = card.dataset.id;
@@ -414,6 +453,11 @@ function renderCharRows() {
     `;
     return;
   }
+  const rowList = visibleCharacters();
+  if (!rowList.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-state-title">해당 조건의 캐릭터가 없어요</div><div class="empty-state-sub">필터를 바꿔보세요</div></div>`;
+    return;
+  }
   // header
   let html = `<div class="char-rows-table" role="table">`;
   html += `<div class="char-row head" role="row">
@@ -425,7 +469,7 @@ function renderCharRows() {
     <div class="cell oath">서약</div>
     <div class="cell actions"></div>
   </div>`;
-  state.characters.forEach(c => { html += rowHTML(c); });
+  rowList.forEach(c => { html += rowHTML(c); });
   html += `</div>`;
   wrap.innerHTML = html;
 
@@ -482,7 +526,7 @@ function rowHTML(c) {
   const setCell = !loaded
     ? `<span class="muted">${loading ? '로딩…' : '—'}</span>`
     : (set
-      ? `${setEmblem}${tierLabel ? `<span class="badge ${tierCls}">${tierLabel}</span>` : ''}${setEval?.current > 0 ? `<span class="r-pt">${fmt(setEval.current)}</span>` : ''}`
+      ? `${setEmblem}<span class="cc-opt-spacer"></span>${tierLabel ? `<span class="badge ${tierCls}">${tierLabel}</span>` : ''}${setEval?.current > 0 ? `<span class="r-pt">${fmt(setEval.current)}</span>` : ''}`
       : `<span class="muted">없음</span>`);
 
   // 서약 셀
@@ -497,12 +541,14 @@ function rowHTML(c) {
     const active = sp && sp.current >= sp.min;
     const oathIconUrl = A.getDundamSetIconUrl(rawName);
     const oathEmblem = oathIconUrl
-      ? `<img class="cc-set-icon" src="${oathIconUrl}" alt="" title="${displayName}${oath.setInfo?.setName ? ` / ${oath.setInfo.setName}` : ''}" onerror="this.outerHTML='<span class=\\'cc-set-emblem ${rarityClass(setRarity)}\\' title=&quot;${displayName}&quot;><svg viewBox=&quot;0 0 24 24&quot; fill=&quot;currentColor&quot;><circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;9&quot;/></svg></span>'">`
-      : `<span class="cc-set-emblem ${rarityClass(setRarity)}" title="${displayName}${oath.setInfo?.setName ? ` / ${oath.setInfo.setName}` : ''}" aria-hidden="true">
+      ? `<img class="cc-set-icon" src="${oathIconUrl}" alt="" title="${displayName}" onerror="this.outerHTML='<span class=\\'cc-set-emblem ${rarityClass(setRarity)}\\' title=&quot;${displayName}&quot;><svg viewBox=&quot;0 0 24 24&quot; fill=&quot;currentColor&quot;><circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;9&quot;/></svg></span>'">`
+      : `<span class="cc-set-emblem ${rarityClass(setRarity)}" title="${displayName}" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
          </span>`;
     const inactiveBadge = (!active && sp) ? `<span class="badge" style="color:var(--warn);border-color:oklch(from var(--warn) l c h / 0.4);background:oklch(from var(--warn) l c h / 0.1);font-size:9px">미달성 ${sp.min - sp.current}</span>` : '';
-    oathCell = `${oathEmblem}${setRarity ? `<span class="badge ${rarityClass(setRarity)}">${setRarity}</span>` : ''}${inactiveBadge}${sp ? `<span class="r-pt">${fmt(sp.current)}</span>` : ''}`;
+    const optNo = A.getOathOptionNo(rawName);
+    const optBadge = optNo ? `<span class="cc-oath-opt" title="${displayName}">${optNo}</span>` : '';
+    oathCell = `${oathEmblem}${optBadge}${setRarity ? `<span class="badge ${rarityClass(setRarity)}">${setRarity}</span>` : ''}${inactiveBadge}${sp ? `<span class="r-pt">${fmt(sp.current)}</span>` : ''}`;
   } else {
     oathCell = `<span class="muted">없음</span>`;
   }
@@ -586,7 +632,7 @@ function cardHTML(c) {
   // 세트 아이콘 — 던담의 세트별 전용 아이콘 (12종)
   const setIconUrl = set ? A.getDundamSetIconUrl(set.name) : null;
   const setIcon = setIconUrl
-    ? `<img class="cc-set-icon" src="${setIconUrl}" alt="" title="${set.name}" onerror="this.outerHTML='<span class=\\'cc-set-emblem ${tierCls}\\' aria-hidden=true><svg viewBox=&quot;0 0 24 24&quot; fill=&quot;currentColor&quot;><path d=&quot;M12 2 22 12 12 22 2 12z&quot;/></svg></span>'">`
+    ? `<img class="cc-set-icon" src="${setIconUrl}" alt="" title="${set.name}" onerror="this.outerHTML='<span class=\\'cc-set-emblem ${tierCls}\\' title=&quot;${set.name}&quot;><svg viewBox=&quot;0 0 24 24&quot; fill=&quot;currentColor&quot;><path d=&quot;M12 2 22 12 12 22 2 12z&quot;/></svg></span>'">`
     : (set
         ? `<span class="cc-set-emblem ${tierCls}" title="${set.name}" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 22 12 12 22 2 12z"/></svg>
@@ -596,28 +642,30 @@ function cardHTML(c) {
   const setRow = !loaded
     ? `<span class="cc-set-name" style="color:var(--text-4)">${loading ? '로딩 중…' : errored ? '조회 실패' : '—'}</span>`
     : (set
-        ? `${setIcon}<span class="cc-set-name" title="${set.name}">${set.name}</span>${tierBadge}${setPointBadge}`
+        ? `${setIcon}<span class="cc-opt-spacer"></span>${tierBadge}${setPointBadge}`
         : '<span class="cc-set-name" style="color:var(--text-4)">세트 없음</span>');
 
-  // 서약 — 세트 row와 동일한 패턴 + 아이콘
+  // 서약 — 아이콘 + 진의번호 + 등급 + 포인트 (이름은 hover 툴팁)
   let pactBlock;
+  let pactTitle = '';
   if (!loaded) {
     pactBlock = `<span class="cc-set-name" style="color:var(--text-4)">${loading ? '로딩 중…' : '—'}</span>`;
   } else if (oath?.info) {
-    // 서약 표시 이름 = setOptionName (의미 있는 효과명), fallback으로 itemName
-    // "황금 : 숭배하라, 세상의 왕을" → "숭배하라, 세상의 왕을" (prefix 제거)
     const rawName = oath.setInfo?.setOptionName || oath.info.itemName || '서약';
     const displayName = rawName.replace(/^[^:]+\s*:\s*/, '');
     const setName = oath.setInfo?.setName;
     const setRarity = oath.setInfo?.setRarityName;
     const sp = oath.setInfo?.active?.setPoint;
     const active = sp && sp.current >= sp.min;
+    const optNo = A.getOathOptionNo(rawName);
     const oathIconUrl = A.getDundamSetIconUrl(rawName);
+    const oathTitle = displayName;
     const oathIcon = oathIconUrl
-      ? `<img class="cc-set-icon" src="${oathIconUrl}" alt="" title="${displayName}" onerror="this.outerHTML='<span class=\\'cc-set-emblem ${rarityClass(setRarity)}\\' title=&quot;${displayName}&quot;><svg viewBox=&quot;0 0 24 24&quot; fill=&quot;currentColor&quot;><circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;9&quot;/></svg></span>'">`
-      : `<span class="cc-set-emblem ${rarityClass(setRarity)}" title="${displayName}" aria-hidden="true">
+      ? `<img class="cc-set-icon" src="${oathIconUrl}" alt="" title="${oathTitle}" onerror="this.outerHTML='<span class=\\'cc-set-emblem ${rarityClass(setRarity)}\\' title=&quot;${displayName}&quot;><svg viewBox=&quot;0 0 24 24&quot; fill=&quot;currentColor&quot;><circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;9&quot;/></svg></span>'">`
+      : `<span class="cc-set-emblem ${rarityClass(setRarity)}" title="${oathTitle}" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
          </span>`;
+    const optBadge = optNo ? `<span class="cc-oath-opt" title="${displayName}">${optNo}</span>` : '';
     const rarityBadge = setRarity
       ? `<span class="badge ${rarityClass(setRarity)}" style="white-space:nowrap;flex-shrink:0">${setRarity}</span>`
       : '';
@@ -627,7 +675,8 @@ function cardHTML(c) {
     const inactiveBadge = (!active && sp)
       ? `<span class="badge" style="white-space:nowrap;flex-shrink:0;font-size:9px;color:var(--warn);border-color:oklch(from var(--warn) l c h / 0.4);background:oklch(from var(--warn) l c h / 0.1)">미달성 ${sp.min - sp.current}</span>`
       : '';
-    pactBlock = `${oathIcon}<span class="cc-set-name" title="${displayName}${setName ? ` / ${setName}` : ''}">${displayName}</span>${rarityBadge}${inactiveBadge}${pointBadge}`;
+    pactBlock = `${oathIcon}${optBadge}${rarityBadge}${inactiveBadge}${pointBadge}`;
+    pactTitle = displayName;
   } else {
     pactBlock = `<span class="cc-set-name" style="color:var(--text-4)">서약 없음</span>`;
   }
@@ -639,10 +688,6 @@ function cardHTML(c) {
       <div class="cc-avatar">${avatarHTML(c)}</div>
       <div class="cc-right">
         <div class="cc-info">
-          <button class="cc-detail-btn" data-action="detail" title="상세 보기" aria-label="상세 보기">
-            <svg class="ico sm"><use href="#i-eye"/></svg>
-            <span>상세</span>
-          </button>
           <div class="cc-header-row">
             <div class="cc-id">
               <div class="cc-name">
@@ -659,10 +704,25 @@ function cardHTML(c) {
               ${fameDelta && fameDelta.cls !== 'same' ? `<span class="cc-fame-delta sm ${fameDelta.cls}">${fameDelta.text}</span>` : ''}
             </div>
           </div>
-          <div class="cc-primary-row">
-            <span class="cc-primary-num ${primaryVal == null ? 'empty' : ''}">${primaryVal ?? '—'}</span>
-            ${primaryDelta ? `<span class="cc-fame-delta inline ${primaryDelta.cls}">${primaryDelta.text}</span>` : ''}
-          </div>
+          ${isBuff && buffScores ? `
+            <div class="cc-primary-row cc-ench">
+              <span class="cc-primary-lbl">버프점수</span>
+              <div class="cc-ench-scores">
+                ${buffScores.map((s, i) => `
+                  <span class="cc-ench-chip">
+                    <span class="cc-ench-party">${i + 2}인</span>
+                    <span class="cc-ench-val">${s}</span>
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div class="cc-primary-row">
+              <span class="cc-primary-lbl">${primaryLbl}</span>
+              <span class="cc-primary-num ${primaryVal == null ? 'empty' : ''}">${primaryVal ?? '—'}</span>
+              ${primaryDelta ? `<span class="cc-fame-delta inline ${primaryDelta.cls}">${primaryDelta.text}</span>` : ''}
+            </div>
+          `}
           ${c.refreshed && primaryPrev != null && parseDundamNum(primaryPrev) !== parseDundamNum(primaryVal) ? `
             <div class="cc-prev-row">
               <span class="cc-prev-lbl">이전</span>
@@ -673,21 +733,26 @@ function cardHTML(c) {
         <div class="cc-loadout">
           <div class="cc-loadout-row">
             <span class="cc-loadout-label">세트</span>
-            <div class="cc-loadout-body">${setRow}</div>
+            <div class="cc-loadout-body"${set ? ` data-tip="${set.name}"` : ''}>${setRow}</div>
           </div>
           <div class="cc-loadout-row">
             <span class="cc-loadout-label">서약</span>
-            <div class="cc-loadout-body">${pactBlock}</div>
+            <div class="cc-loadout-body"${pactTitle ? ` data-tip="${pactTitle}"` : ''}>${pactBlock}</div>
           </div>
         </div>
+        <button class="cc-detail-btn" data-action="detail" title="상세 보기" aria-label="상세 보기">
+          <svg class="ico sm"><use href="#i-eye"/></svg>
+          <span>상세 보기</span>
+        </button>
       </div>
     </div>
   `;
 }
 
 function patchCard(characterId) {
-  // 행 뷰면 행 전체를 다시 그리는 게 빠름 (간단함)
-  if (state.viewMode === 'row') {
+  // 행 뷰면 행 전체를 다시 그리는 게 빠름 (모바일은 카드 강제)
+  const isMobile = window.matchMedia('(max-width:560px)').matches;
+  if (state.viewMode === 'row' && !isMobile) {
     return renderCharRows();
   }
   const c = state.characters.find(x => x.characterId === characterId);
@@ -1765,43 +1830,50 @@ async function renderModalTimeline() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  Theme + Tweaks (same as before)
+//  Theme — 듀얼 (시스템 설정 따라가되 헤더 토글로 수동 전환, localStorage 저장)
 // ════════════════════════════════════════════════════════════
-function setTheme(t) {
+const THEME_KEY = 'df_console_theme';
+function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
-  $('#themeLbl').textContent = t === 'dark' ? '다크 모드' : '라이트 모드';
-  $('#themeBtn').querySelector('use').setAttribute('href', t === 'dark' ? '#i-moon' : '#i-sun');
-  $$('[data-theme-opt]').forEach(b => b.classList.toggle('active', b.dataset.themeOpt === t));
+  const lbl = $('#themeLbl'); if (lbl) lbl.textContent = t === 'dark' ? '다크 모드' : '라이트 모드';
+  const use = $('#themeBtn')?.querySelector('use'); if (use) use.setAttribute('href', t === 'dark' ? '#i-moon' : '#i-sun');
 }
-$('#themeBtn').addEventListener('click', () => {
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  const sys = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  applyTheme(saved || sys);
+  // 저장값 없으면 시스템 설정 변화 따라가기
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? 'dark' : 'light');
+  });
+}
+initTheme();
+$('#themeBtn')?.addEventListener('click', () => {
   const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  setTheme(next);
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
 });
-$$('[data-theme-opt]').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.themeOpt)));
 
-const ACCENTS = {
-  amber:   { l: 0.78, c: 0.15, h: 65  },
-  emerald: { l: 0.74, c: 0.17, h: 148 },
-  azure:   { l: 0.72, c: 0.18, h: 240 },
-  violet:  { l: 0.72, c: 0.20, h: 295 },
-  coral:   { l: 0.72, c: 0.18, h: 25  },
-};
-function setAccent(name) {
-  const { l, c, h } = ACCENTS[name];
-  const root = document.documentElement;
-  root.style.setProperty('--accent', `oklch(${l} ${c} ${h})`);
-  root.style.setProperty('--accent-hover', `oklch(${l+0.05} ${c} ${h+3})`);
-  root.style.setProperty('--accent-bg', `oklch(${l} ${c} ${h} / 0.14)`);
-  root.style.setProperty('--accent-border', `oklch(${l} ${c} ${h} / 0.42)`);
-  $$('.swatch').forEach(s => s.classList.toggle('active', s.dataset.accent === name));
-}
-$$('.swatch').forEach(s => s.addEventListener('click', () => setAccent(s.dataset.accent)));
 $$('[data-density]').forEach(b => b.addEventListener('click', () => {
   $$('[data-density]').forEach(x => x.classList.toggle('active', x === b));
-  document.documentElement.style.setProperty('--header-h', b.dataset.density === 'compact' ? '48px' : '56px');
+  const mode = b.dataset.density;   // 'comfortable' | 'compact'
+  document.documentElement.setAttribute('data-density', mode);
+  document.documentElement.style.setProperty('--header-h', mode === 'compact' ? '48px' : '56px');
+  try { localStorage.setItem('df_console_density', mode); } catch {}
 }));
-$('#tweaksBtn').addEventListener('click', () => $('#tweaksPop').classList.toggle('show'));
-$('#tweaksCloseBtn').addEventListener('click', () => $('#tweaksPop').classList.remove('show'));
+// 저장된 밀도 복원
+(function(){
+  const saved = localStorage.getItem('df_console_density');
+  if (saved) {
+    document.documentElement.setAttribute('data-density', saved);
+    document.documentElement.style.setProperty('--header-h', saved === 'compact' ? '48px' : '56px');
+    $$('[data-density]').forEach(x => x.classList.toggle('active', x.dataset.density === saved));
+  } else {
+    document.documentElement.setAttribute('data-density', 'comfortable');
+  }
+})();
+$('#tweaksBtn')?.addEventListener('click', () => $('#tweaksPop')?.classList.toggle('show'));
+$('#tweaksCloseBtn')?.addEventListener('click', () => $('#tweaksPop')?.classList.remove('show'));
 
 // ════════════════════════════════════════════════════════════
 //  Bootstrap
@@ -1815,6 +1887,7 @@ async function init() {
   }
   renderAdvTag();
   renderRefreshStats();
+  if (typeof updateSortSegUI === 'function') updateSortSegUI();
   renderCharCards();
   if (state.characters.length) {
     // restored — load all details in background
@@ -1883,11 +1956,72 @@ $$('#viewModeSeg .seg').forEach(b => b.addEventListener('click', () => {
   saveState();
   renderCharCards();
 }));
+
+// 필터+정렬 통합 세그먼트 (던담/명성/딜/버프) — 활성 항목 재클릭 시 desc↔asc 토글
+$$('#charSortSeg .seg').forEach(b => b.addEventListener('click', () => {
+  if (state.charSort === b.dataset.sort) {
+    state.charSortDir = state.charSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    state.charSort = b.dataset.sort;
+    state.charSortDir = 'desc';
+  }
+  updateSortSegUI();
+  renderCharCards();
+}));
+function updateSortSegUI() {
+  $$('#charSortSeg .seg').forEach(x => {
+    const active = x.dataset.sort === state.charSort;
+    x.classList.toggle('active', active);
+    // 방향 화살표 표시
+    const base = x.dataset.label || (x.dataset.label = x.textContent.replace(/[\s↓↑]+$/, ''));
+    x.textContent = active ? `${base} ${state.charSortDir === 'desc' ? '↓' : '↑'}` : base;
+  });
+}
+// 검색 결과 있을 때만 필터 행 노출
+function updateFilterRowVisibility() {
+  const row = $('#filterRow');
+  if (row) row.style.display = state.characters.length ? '' : 'none';
+}
+
 // 초기 동기화
 document.addEventListener('DOMContentLoaded', () => {
   $$('#viewModeSeg .seg').forEach(x => x.classList.toggle('active', x.dataset.view === state.viewMode));
 });
 
 init();
+
+// 모바일↔데스크톱 경계 넘을 때 뷰 재렌더 (행뷰 저장 상태 대응)
+(function(){
+  let wasMobile = window.matchMedia('(max-width:560px)').matches;
+  window.addEventListener('resize', () => {
+    const now = window.matchMedia('(max-width:560px)').matches;
+    if (now !== wasMobile) { wasMobile = now; if (state.characters.length) renderCharCards(); }
+  });
+})();
+
+// 즉시 표시되는 커스텀 툴팁 (data-tip 속성 요소에)
+(function initTip(){
+  let tip;
+  const show = el => {
+    if (!tip) { tip = document.createElement('div'); tip.className = 'cc-tip'; document.body.appendChild(tip); }
+    tip.textContent = el.getAttribute('data-tip');
+    tip.style.display = 'block';
+    const r = el.getBoundingClientRect();
+    let top = r.top - tip.offsetHeight - 6;
+    if (top < 4) top = r.bottom + 6;
+    let left = r.left;
+    const maxLeft = window.innerWidth - tip.offsetWidth - 6;
+    if (left > maxLeft) left = Math.max(6, maxLeft);
+    tip.style.left = Math.round(left) + 'px';
+    tip.style.top = Math.round(top) + 'px';
+  };
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    if (el) show(el);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('[data-tip]') && tip) tip.style.display = 'none';
+  });
+})();
 
 })();

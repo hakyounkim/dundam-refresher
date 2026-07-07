@@ -32,6 +32,7 @@
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M13 6v12" stroke-dasharray="2 2"/></symbol>
   </defs>
 </svg>
 
@@ -40,11 +41,7 @@
   <!-- ── SIDEBAR ── -->
   <aside class="side">
     <div class="side-brand">
-      <div class="side-brand-mark">⚡</div>
-      <div class="side-brand-text">
-        DF Console
-        <small>v2 redesign</small>
-      </div>
+      <div class="side-brand-mark"><svg class="ico"><use href="#i-bolt"/></svg></div>
     </div>
 
     <div class="side-section-label">유틸리티</div>
@@ -64,18 +61,9 @@
         <span>계시 환산기</span>
       </button>
       <button class="nav-btn" data-tab="tobeol">
-        <span class="nav-ico"><svg class="ico"><use href="#i-bolt"/></svg></span>
+        <span class="nav-ico"><svg class="ico"><use href="#i-ticket"/></svg></span>
         <span>토벌권 계산기</span>
       </button>
-    </nav>
-
-    <div class="side-section-label" style="margin-top:18px">레거시</div>
-    <nav class="side-nav">
-      <a class="nav-btn" href="legacy.html" title="이전 버전 일괄 갱신기 (구 디자인)">
-        <span class="nav-ico"><svg class="ico"><use href="#i-history"/></svg></span>
-        <span>이전 버전</span>
-        <span class="nav-count" style="color:var(--text-4);background:none;border:none">old</span>
-      </a>
     </nav>
 
     <div class="side-foot">
@@ -83,7 +71,7 @@
         <svg class="ico sm"><use href="#i-refresh"/></svg>
         <span>최근 동기화 · <span id="lastSync">방금</span></span>
       </div>
-      <button class="btn ghost" id="themeBtn" title="테마 변경" style="justify-content:flex-start;gap:8px">
+      <button class="btn ghost" id="themeBtn" title="테마 전환" style="justify-content:flex-start;gap:8px">
         <svg class="ico"><use href="#i-moon"/></svg>
         <span id="themeLbl">다크 모드</span>
       </button>
@@ -132,29 +120,39 @@
           <button class="seg active" data-view="grid" title="카드 그리드">▦</button>
           <button class="seg" data-view="row" title="리스트 행">☰</button>
         </div>
-        <span class="toolbar-divider"></span>
         <div class="search-wrap">
           <svg class="ico" style="color:var(--text-3)"><use href="#i-search"/></svg>
           <input type="text" id="advName" placeholder="모험단명 입력 후 Enter…" maxlength="12">
         </div>
         <button class="btn primary" id="searchBtn">검색</button>
-        <span class="toolbar-divider"></span>
-        <button class="btn" id="selectAllBtn">전체 선택</button>
-        <button class="btn ghost sm" id="selectNoneBtn">해제</button>
-        <span class="toolbar-divider"></span>
-        <span class="num" id="selCount" style="color:var(--text-3);font-size:12px;font-weight:600;padding:0 4px">0 / 0 선택</span>
-        <button class="btn primary" id="refreshGoBtn">
-          <svg class="ico sm"><use href="#i-refresh"/></svg>
-          <span>선택 갱신</span>
-        </button>
-        <button class="btn ghost sm" id="demoBtn" title="실제 갱신 없이 가짜 명성 변동값을 입혀 갱신된 상태처럼 보여줍니다 (디자인 검토용)" style="display:none">
-          <span style="font-size:11px">🔮 데모 갱신</span>
-        </button>
+        <span class="toolbar-divider tb-desktop"></span>
+        <div class="acts-wrap">
+          <button class="btn" id="selectAllBtn">전체 선택</button>
+          <button class="btn ghost sm" id="selectNoneBtn">해제</button>
+          <span class="num" id="selCount" style="color:var(--text-3);font-size:12px;font-weight:600;padding:0 4px">0 / 0 선택</span>
+          <button class="btn primary" id="refreshGoBtn">
+            <svg class="ico sm"><use href="#i-refresh"/></svg>
+            <span>선택 갱신</span>
+          </button>
+          <button class="btn ghost sm" id="demoBtn" title="실제 갱신 없이 가짜 명성 변동값을 입혀 갱신된 상태처럼 보여줍니다 (디자인 검토용)" style="display:none">
+            <span style="font-size:11px">데모 갱신</span>
+          </button>
+        </div>
       </div>
 
       <!-- Recent searches -->
       <div class="recent-row" id="recentRow" style="display:none">
         <span class="recent-label">최근</span>
+      </div>
+
+      <!-- 필터+정렬 통합 -->
+      <div class="filter-row" id="filterRow" style="display:none">
+        <div class="segmented" id="charSortSeg" title="필터 + 정렬 (활성 항목 재클릭 시 오름/내림 전환)">
+          <button class="seg active" data-sort="dundam">던담순</button>
+          <button class="seg" data-sort="fame">명성순</button>
+          <button class="seg" data-sort="deal">딜</button>
+          <button class="seg" data-sort="buff">버프</button>
+        </div>
       </div>
 
       <!-- 로딩 표시 (검색 직후 상세 로드 / 갱신 진행) -->
@@ -319,7 +317,7 @@
                 <th class="col-item">품목</th>
                 <th>안전 (최소)</th>
                 <th>중위</th>
-                <th>최대 🔥</th>
+                <th>최대</th>
               </tr>
             </thead>
             <tbody id="bidBody"></tbody>
@@ -362,9 +360,9 @@
   </div>
   <div class="modal-tabs" id="modalTabs">
     <button class="modal-tab active" data-mtab="summary">요약</button>
-    <button class="modal-tab" data-mtab="gear">⚔ 장비</button>
-    <button class="modal-tab" data-mtab="pact">🔮 서약</button>
-    <button class="modal-tab" data-mtab="timeline">🕘 타임라인</button>
+    <button class="modal-tab" data-mtab="gear"><svg class="ico sm"><use href="#i-sword"/></svg> 장비</button>
+    <button class="modal-tab" data-mtab="pact"><svg class="ico sm"><use href="#i-pact"/></svg> 서약</button>
+    <button class="modal-tab" data-mtab="timeline"><svg class="ico sm"><use href="#i-history"/></svg> 타임라인</button>
   </div>
   <div class="modal-body" id="modalBody"></div>
 </div>
@@ -377,28 +375,10 @@
   </div>
   <div class="tweaks-body">
     <div class="tweaks-row">
-      <span class="tlbl">액센트 컬러</span>
-      <span class="tsub">버튼·하이라이트에 쓰이는 단일 액센트</span>
-      <div class="swatch-row" id="accentRow">
-        <div class="swatch active" data-accent="amber"  style="background:oklch(0.78 0.15 65)"></div>
-        <div class="swatch" data-accent="emerald"      style="background:oklch(0.74 0.17 148)"></div>
-        <div class="swatch" data-accent="azure"        style="background:oklch(0.72 0.18 240)"></div>
-        <div class="swatch" data-accent="violet"       style="background:oklch(0.72 0.20 295)"></div>
-        <div class="swatch" data-accent="coral"        style="background:oklch(0.72 0.18 25)"></div>
-      </div>
-    </div>
-    <div class="tweaks-row">
       <span class="tlbl">밀도</span>
       <div class="segmented">
         <button class="seg active" data-density="comfortable">기본</button>
         <button class="seg" data-density="compact">조밀</button>
-      </div>
-    </div>
-    <div class="tweaks-row">
-      <span class="tlbl">테마</span>
-      <div class="segmented">
-        <button class="seg active" data-theme-opt="dark">다크</button>
-        <button class="seg" data-theme-opt="light">라이트</button>
       </div>
     </div>
   </div>
